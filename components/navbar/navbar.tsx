@@ -43,7 +43,9 @@ export default function Navbar() {
           </ul>
           <ul className="navbar-nav px-3">
             <li className="nav-item text-nowrap">
-              <Button className="nav-link">Signup</Button>
+              <Button href="/login" className="nav-link">
+                Login
+              </Button>
             </li>
           </ul>
         </div>
