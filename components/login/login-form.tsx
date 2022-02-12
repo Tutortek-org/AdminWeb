@@ -2,7 +2,7 @@ import { Formik, Field, Form, FormikHelpers } from "formik";
 import styles from "./login-form.module.css";
 
 interface Values {
-  username: string;
+  email: string;
   password: string;
 }
 
@@ -12,7 +12,7 @@ export default function LoginForm() {
       <h1 className="display-6 mb-3">Login</h1>
       <Formik
         initialValues={{
-          username: "",
+          email: "",
           password: "",
         }}
         onSubmit={(
@@ -20,7 +20,7 @@ export default function LoginForm() {
           { setSubmitting }: FormikHelpers<Values>
         ) => {
           setTimeout(() => {
-            alert(JSON.stringify(values, null, 2));
+            sendLoginRequest(values);
             setSubmitting(false);
           }, 500);
         }}
@@ -29,9 +29,9 @@ export default function LoginForm() {
           <div className="mb-3">
             <Field
               className="form-control"
-              id="username"
-              name="username"
-              placeholder="Username"
+              id="email"
+              name="email"
+              placeholder="E-mail"
               aria-describedby="usernameHelp"
             />
           </div>
@@ -54,3 +54,15 @@ export default function LoginForm() {
     </div>
   );
 }
+
+const sendLoginRequest = async (values: Values) => {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/login`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+    body: JSON.stringify(values),
+  });
+  const data = await response.json();
+  console.log(data.token);
+};
