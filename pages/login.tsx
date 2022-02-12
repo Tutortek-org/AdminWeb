@@ -1,8 +1,14 @@
 import Head from "next/head";
+import { GetServerSideProps } from "next";
+import { getCsrfToken } from "next-auth/react";
 import SimpleLayout from "../components/layout/simple";
 import LoginForm from "../components/login/login-form";
 
-export default function Login() {
+interface Props {
+  csrfToken: string;
+}
+
+export default function Login({ csrfToken }: Props) {
   return (
     <SimpleLayout>
       <Head>
@@ -11,8 +17,15 @@ export default function Login() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main className="vh-100 d-flex justify-content-center align-items-center">
-        <LoginForm />
+        <LoginForm csrfToken={csrfToken} />
       </main>
     </SimpleLayout>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const csrfToken = await getCsrfToken(context);
+  return {
+    props: { csrfToken },
+  };
+};
