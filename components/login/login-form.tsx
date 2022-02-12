@@ -1,56 +1,68 @@
-import { Formik, Field, Form, FormikHelpers } from "formik";
+import { useFormik } from "formik";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/router";
 import styles from "./login-form.module.css";
 
-interface Values {
-  username: string;
-  password: string;
+interface Props {
+  csrfToken: string;
 }
 
-export default function LoginForm() {
+export default function LoginForm({ csrfToken }: Props) {
+  const router = useRouter();
+  const formik = useFormik({
+    initialValues: {
+      email: "",
+      password: "",
+      csrfToken,
+    },
+    onSubmit: async (values) => {
+      const response = await signIn<"credentials">("credentials", {
+        redirect: false,
+        ...values,
+      });
+
+      if (response?.ok) {
+        router.push("/");
+      }
+
+      // TODO: handle error
+    },
+  });
+
   return (
     <div className={styles.login_box + " p-3"}>
       <h1 className="display-6 mb-3">Login</h1>
-      <Formik
-        initialValues={{
-          username: "",
-          password: "",
-        }}
-        onSubmit={(
-          values: Values,
-          { setSubmitting }: FormikHelpers<Values>
-        ) => {
-          setTimeout(() => {
-            alert(JSON.stringify(values, null, 2));
-            setSubmitting(false);
-          }, 500);
-        }}
-      >
-        <Form>
-          <div className="mb-3">
-            <Field
-              className="form-control"
-              id="username"
-              name="username"
-              placeholder="Username"
-              aria-describedby="usernameHelp"
-            />
-          </div>
+      <form onSubmit={formik.handleSubmit}>
+        <input name="csrfToken" type="hidden" defaultValue={csrfToken} />
 
-          <div className="mb-3">
-            <Field
-              className="form-control"
-              id="password"
-              name="password"
-              placeholder="Password"
-              type="password"
-            />
-          </div>
+        <div className="mb-3">
+          <input
+            className="form-control"
+            id="email"
+            name="email"
+            placeholder="E-mail"
+            aria-describedby="usernameHelp"
+            onChange={formik.handleChange}
+            value={formik.values.email}
+          />
+        </div>
 
-          <button type="submit" className="btn btn-primary">
-            Login
-          </button>
-        </Form>
-      </Formik>
+        <div className="mb-3">
+          <input
+            className="form-control"
+            id="password"
+            name="password"
+            placeholder="Password"
+            type="password"
+            onChange={formik.handleChange}
+            value={formik.values.password}
+          />
+        </div>
+
+        <button type="submit" className="btn btn-primary">
+          Login
+        </button>
+      </form>
     </div>
   );
 }
