@@ -25,19 +25,17 @@ export default function Navbar() {
           <ul className="navbar-nav mr-auto">
             <li className="nav-item active">
               <Link href="/">
-                <a className="nav-link">
-                  Home <span className="sr-only">(current)</span>
-                </a>
+                <a className="nav-link">Pending content</a>
               </Link>
             </li>
             <li className="nav-item">
               <Link href="/articles">
-                <a className="nav-link">Articles</a>
+                <a className="nav-link">User control</a>
               </Link>
             </li>
             <li className="nav-item">
               <Link href="/write">
-                <a className="nav-link">Write</a>
+                <a className="nav-link">Notifications</a>
               </Link>
             </li>
           </ul>

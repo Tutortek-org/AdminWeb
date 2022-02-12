@@ -6,14 +6,16 @@ const Home: NextPage = () => {
     <SimpleLayout>
       <section className="jumbotron text-center">
         <div className="container">
-          <h1>Testas</h1>
-          <p className="lead text-muted">Teeeeeeeeeeeeeeeeeeeestas123</p>
+          <h1>Welcome to the admin portal of Tutortek!</h1>
         </div>
       </section>
 
       <div className="row">
-        <h1>Teeeeeeeeeeeeeeeeeeeestas</h1>
-        <p>Teeeestas</p>
+        <p>
+          This site is meant for the administrators of the Tutortek mobile
+          application. If you are not one of them please close this site as it
+          is not meant for you. Have a great day!
+        </p>
       </div>
     </SimpleLayout>
   );
