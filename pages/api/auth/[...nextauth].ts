@@ -1,6 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import jwt_decode from "jwt-decode";
+
+interface TutortekJWT {
+  uid: number;
+  sub: string;
+  roles: string[];
+  pid: number;
+  exp: number;
+  iat: number;
+}
 
 export default async function auth(req: NextApiRequest, res: NextApiResponse) {
   return await NextAuth(req, res, {
@@ -34,8 +44,9 @@ export default async function auth(req: NextApiRequest, res: NextApiResponse) {
           });
 
           const { token } = await res.json();
+          const decoded: TutortekJWT = jwt_decode(token);
 
-          if (res.ok && token) {
+          if (res.ok && token && decoded.roles.includes("ADMIN")) {
             return { token };
           }
 
