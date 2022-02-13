@@ -7,8 +7,13 @@ interface Props {
   csrfToken: string;
 }
 
+var isErrorPresent = false;
+
 export default function LoginForm({ csrfToken }: Props) {
   const router = useRouter();
+  router.events.on("routeChangeComplete", () => {
+    isErrorPresent = false;
+  });
   const formik = useFormik({
     initialValues: {
       email: "",
@@ -23,9 +28,9 @@ export default function LoginForm({ csrfToken }: Props) {
 
       if (response?.ok) {
         router.push("/");
+      } else {
+        isErrorPresent = true;
       }
-
-      // TODO: handle error
     },
   });
 
@@ -58,6 +63,12 @@ export default function LoginForm({ csrfToken }: Props) {
             value={formik.values.password}
           />
         </div>
+
+        {isErrorPresent && (
+          <div className="mb-3" style={{ color: "red" }}>
+            Wrong username or password
+          </div>
+        )}
 
         <button type="submit" className="btn btn-primary">
           Login
