@@ -57,7 +57,7 @@ export default function Navbar() {
               <Button
                 onClick={() =>
                   isAuthenticated
-                    ? signOut({ redirect: false })
+                    ? signOut({ redirect: false }).then(() => router.push("/"))
                     : router.push("/login")
                 }
                 className="nav-link"
