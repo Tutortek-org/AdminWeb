@@ -1,68 +1,107 @@
-import Link from "next/link";
 import SimpleLayout from "../components/layout/simple";
-import ArticlesJumbo from "../components/articles";
+import React from "react";
+import { Column, useTable } from "react-table";
 
 export default function Articles() {
+  const data = React.useMemo(
+    () => [
+      {
+        col1: "Hello",
+        col2: "World",
+      },
+      {
+        col1: "react-table",
+        col2: "rocks",
+      },
+      {
+        col1: "whatever",
+        col2: "you want",
+      },
+    ],
+    []
+  );
+
+  const columns: Column<{ col1: string; col2: string }>[] = React.useMemo(
+    () => [
+      { Header: "Column 1", accessor: "col1" },
+      { Header: "Column 2", accessor: "col2" },
+    ],
+    []
+  );
+
+  const tableInstance = useTable({ columns, data });
+  const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
+    tableInstance;
+
   return (
-    <SimpleLayout preContainer={<ArticlesJumbo />}>
-      <div className="row">
-        <div className="col-md-4">
-          <div className="card mb-4 shadow-sm">
-            <Link href={`/#`}>
-              <a>
-                <svg
-                  className="bd-placeholder-img card-img-top"
-                  width="100%"
-                  height="225"
-                  xmlns="http://www.w3.org/2000/svg"
-                  role="img"
-                  aria-label="Placeholder: Thumbnail"
-                  preserveAspectRatio="xMidYMid slice"
-                  focusable="false"
-                >
-                  <title>Placeholder</title>
-                  <rect width="100%" height="100%" fill="#55595c" />
-                  <text x="50%" y="50%" fill="#eceeef" dy=".3em">
-                    Thumbnail
-                  </text>
-                </svg>
-              </a>
-            </Link>
-            <div className="card-body">
-              <h3>Article 1</h3>
-              <p className="card-text">Hey Article</p>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-4">
-          <div className="card mb-4 shadow-sm">
-            <Link href={`/#`}>
-              <a>
-                <svg
-                  className="bd-placeholder-img card-img-top"
-                  width="100%"
-                  height="225"
-                  xmlns="http://www.w3.org/2000/svg"
-                  role="img"
-                  aria-label="Placeholder: Thumbnail"
-                  preserveAspectRatio="xMidYMid slice"
-                  focusable="false"
-                >
-                  <title>Placeholder</title>
-                  <rect width="100%" height="100%" fill="#55595c" />
-                  <text x="50%" y="50%" fill="#eceeef" dy=".3em">
-                    Thumbnail
-                  </text>
-                </svg>
-              </a>
-            </Link>
-            <div className="card-body">
-              <h3>Article 2</h3>
-              <p className="card-text">Hey Article</p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <SimpleLayout>
+      <table {...getTableProps()}>
+        <thead>
+          {
+            // Loop over the header rows
+
+            headerGroups.map((headerGroup) => (
+              // Apply the header row props
+
+              <tr {...headerGroup.getHeaderGroupProps()} key={headerGroup.id}>
+                {
+                  // Loop over the headers in each row
+
+                  headerGroup.headers.map((column) => (
+                    // Apply the header cell props
+
+                    <th {...column.getHeaderProps()} key={headerGroup.id}>
+                      {
+                        // Render the header
+
+                        column.render("Header")
+                      }
+                    </th>
+                  ))
+                }
+              </tr>
+            ))
+          }
+        </thead>
+
+        {/* Apply the table body props */}
+
+        <tbody {...getTableBodyProps()}>
+          {
+            // Loop over the table rows
+
+            rows.map((row) => {
+              // Prepare the row for display
+
+              prepareRow(row);
+
+              return (
+                // Apply the row props
+
+                <tr {...row.getRowProps()} key={row.id}>
+                  {
+                    // Loop over the rows cells
+
+                    row.cells.map((cell) => {
+                      // Apply the cell props
+
+                      return (
+                        <td {...cell.getCellProps()} key={cell.column.id}>
+                          {
+                            // Render the cell contents
+
+                            cell.render("Cell")
+                          }
+                        </td>
+                      );
+                    })
+                  }
+                </tr>
+              );
+            })
+          }
+        </tbody>
+      </table>
     </SimpleLayout>
   );
 }
