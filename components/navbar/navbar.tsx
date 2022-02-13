@@ -39,7 +39,7 @@ export default function Navbar() {
                 </Link>
               </li>
               <li className="nav-item">
-                <Link href="/articles">
+                <Link href="/users">
                   <a className="nav-link">User control</a>
                 </Link>
               </li>

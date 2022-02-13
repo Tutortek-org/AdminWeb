@@ -35,8 +35,11 @@ export default function Articles() {
 
   return (
     <SimpleLayout>
-      <table {...getTableProps()}>
-        <thead>
+      <table
+        {...getTableProps()}
+        className="table table-striped table-bordered table-hover"
+      >
+        <thead className="thead-dark">
           {
             // Loop over the header rows
 
@@ -50,7 +53,11 @@ export default function Articles() {
                   headerGroup.headers.map((column) => (
                     // Apply the header cell props
 
-                    <th {...column.getHeaderProps()} key={headerGroup.id}>
+                    <th
+                      {...column.getHeaderProps()}
+                      key={headerGroup.id}
+                      scope="col"
+                    >
                       {
                         // Render the header
 
