@@ -1,33 +1,29 @@
 import SimpleLayout from "../components/layout/simple";
 import React from "react";
 import { Column, useTable } from "react-table";
+import { GetServerSideProps } from "next";
+import { getSession } from "next-auth/react";
+import { AppProps } from "next/dist/shared/lib/router/router";
+import { Button } from "react-bootstrap";
 
-export default function Articles() {
-  const data = React.useMemo(
-    () => [
-      {
-        col1: "Hello",
-        col2: "World",
-      },
-      {
-        col1: "react-table",
-        col2: "rocks",
-      },
-      {
-        col1: "whatever",
-        col2: "you want",
-      },
-    ],
-    []
-  );
+interface User {
+  id: number;
+  email: string;
+  isBanned: boolean;
+}
 
-  const columns: Column<{ col1: string; col2: string }>[] = React.useMemo(
-    () => [
-      { Header: "Column 1", accessor: "col1" },
-      { Header: "Column 2", accessor: "col2" },
-    ],
-    []
-  );
+export default function Users({ users }: AppProps) {
+  const data = React.useMemo(() => users, [users]);
+
+  const columns: Column<{ id: string; email: string; isBanned: boolean }>[] =
+    React.useMemo(
+      () => [
+        { Header: "ID", accessor: "id" },
+        { Header: "E-mail", accessor: "email" },
+        { Header: "Actions", accessor: "isBanned" },
+      ],
+      []
+    );
 
   const tableInstance = useTable({ columns, data });
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
@@ -40,75 +36,64 @@ export default function Articles() {
         className="table table-striped table-bordered table-hover"
       >
         <thead className="thead-dark">
-          {
-            // Loop over the header rows
-
-            headerGroups.map((headerGroup) => (
-              // Apply the header row props
-
-              <tr {...headerGroup.getHeaderGroupProps()} key={headerGroup.id}>
-                {
-                  // Loop over the headers in each row
-
-                  headerGroup.headers.map((column) => (
-                    // Apply the header cell props
-
-                    <th
-                      {...column.getHeaderProps()}
-                      key={headerGroup.id}
-                      scope="col"
-                    >
-                      {
-                        // Render the header
-
-                        column.render("Header")
-                      }
-                    </th>
-                  ))
-                }
-              </tr>
-            ))
-          }
+          {headerGroups.map((headerGroup) => (
+            <tr {...headerGroup.getHeaderGroupProps()} key={headerGroup.id}>
+              {headerGroup.headers.map((column) => (
+                <th
+                  {...column.getHeaderProps()}
+                  key={headerGroup.id}
+                  scope="col"
+                >
+                  {column.render("Header")}
+                </th>
+              ))}
+            </tr>
+          ))}
         </thead>
-
-        {/* Apply the table body props */}
-
         <tbody {...getTableBodyProps()}>
-          {
-            // Loop over the table rows
-
-            rows.map((row) => {
-              // Prepare the row for display
-
-              prepareRow(row);
-
-              return (
-                // Apply the row props
-
-                <tr {...row.getRowProps()} key={row.id}>
-                  {
-                    // Loop over the rows cells
-
-                    row.cells.map((cell) => {
-                      // Apply the cell props
-
-                      return (
-                        <td {...cell.getCellProps()} key={cell.column.id}>
-                          {
-                            // Render the cell contents
-
-                            cell.render("Cell")
+          {rows.map((row) => {
+            prepareRow(row);
+            return (
+              <tr {...row.getRowProps()} key={row.id}>
+                {row.cells.map((cell) => {
+                  return (
+                    <td {...cell.getCellProps()} key={cell.getCellProps().key}>
+                      {cell.column.id === "isBanned" && (
+                        <Button
+                          variant={
+                            cell.row.original.isBanned ? "success" : "danger"
                           }
-                        </td>
-                      );
-                    })
-                  }
-                </tr>
-              );
-            })
-          }
+                        >
+                          Ban
+                        </Button>
+                      )}
+                      {cell.render("Cell")}
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </SimpleLayout>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const session = await getSession(context);
+
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/users`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session?.accessToken}`,
+    },
+  });
+
+  const users: Array<User> = await res.json();
+
+  return {
+    props: { users },
+  };
+};
