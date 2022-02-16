@@ -2,20 +2,22 @@ import SimpleLayout from "../components/layout/simple";
 import React from "react";
 import { Column, useTable } from "react-table";
 import { GetServerSideProps } from "next";
-import { getSession } from "next-auth/react";
+import { getSession, useSession } from "next-auth/react";
 import { AppProps } from "next/dist/shared/lib/router/router";
 import { Button } from "react-bootstrap";
+import { User } from "../interfaces/user";
+import BanButton from "../components/buttons/ban-button";
 
-interface User {
-  id: number;
-  email: string;
-  isBanned: boolean;
+interface Props {
+  users: User[];
 }
 
-export default function Users({ users }: AppProps) {
-  const data = React.useMemo(() => users, [users]);
+export default function Users({ users }: AppProps & Props) {
+  const { data: session } = useSession();
+  const [data, setData] = React.useState(users);
+  // const data = React.useMemo(() => users, [users]);
 
-  const columns: Column<{ id: string; email: string; isBanned: boolean }>[] =
+  const columns: Column<{ id: number; email: string; isBanned: boolean }>[] =
     React.useMemo(
       () => [
         { Header: "ID", accessor: "id" },
@@ -29,6 +31,38 @@ export default function Users({ users }: AppProps) {
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
     tableInstance;
 
+  const toggleBan = async (id: number, isBanned: boolean) => {
+    try {
+      const res = await fetch(
+        `/tutortek-api/users/${id}/${isBanned ? "unban" : "ban"}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${session?.accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      const updatedUser: Partial<User> = await res.json();
+
+      if (updatedUser?.id) {
+        const index = data.findIndex((user) => user.id === updatedUser.id);
+
+        setData((prevData) => {
+          const newData = [...prevData];
+          newData[index] = {
+            ...newData[index],
+            ...updatedUser,
+          };
+          return newData;
+        });
+      }
+    } catch (e) {
+      // TODO: handle error failed to ban
+      console.error(e);
+    }
+  };
+
   return (
     <SimpleLayout>
       <table
@@ -37,11 +71,14 @@ export default function Users({ users }: AppProps) {
       >
         <thead className="thead-dark">
           {headerGroups.map((headerGroup) => (
-            <tr {...headerGroup.getHeaderGroupProps()} key={headerGroup.id}>
+            <tr
+              {...headerGroup.getHeaderGroupProps()}
+              key={headerGroup.getHeaderGroupProps().key}
+            >
               {headerGroup.headers.map((column) => (
                 <th
                   {...column.getHeaderProps()}
-                  key={headerGroup.id}
+                  key={column.getHeaderProps().key}
                   scope="col"
                 >
                   {column.render("Header")}
@@ -54,18 +91,18 @@ export default function Users({ users }: AppProps) {
           {rows.map((row) => {
             prepareRow(row);
             return (
-              <tr {...row.getRowProps()} key={row.id}>
+              <tr {...row.getRowProps()} key={row.getRowProps().key}>
                 {row.cells.map((cell) => {
+                  const { key, ...cellProps } = cell.getCellProps();
                   return (
-                    <td {...cell.getCellProps()} key={cell.getCellProps().key}>
+                    <td key={key} {...cellProps}>
                       {cell.column.id === "isBanned" && (
-                        <Button
-                          variant={
-                            cell.row.original.isBanned ? "success" : "danger"
+                        <BanButton
+                          isBanned={row.original.isBanned}
+                          handleBan={() =>
+                            toggleBan(row.original.id, row.original.isBanned)
                           }
-                        >
-                          Ban
-                        </Button>
+                        />
                       )}
                       {cell.render("Cell")}
                     </td>
@@ -91,7 +128,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     },
   });
 
+  // TODO: try catch and assert that its users array
   const users: Array<User> = await res.json();
+
+  console.log(users);
 
   return {
     props: { users },
