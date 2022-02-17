@@ -18,13 +18,18 @@ var currentPageIndex: number = 0;
 
 export default function Users({ users, isErrorPresent }: AppProps & Props) {
   const { data: session } = useSession();
-  const rowData: Array<UserTableData> = users.map((user) => {
-    return {
-      id: user.id,
-      email: user.email,
-      userFlags: [user.isBanned, false],
-    };
-  });
+  var rowData: Array<UserTableData> = [];
+
+  if (!isErrorPresent) {
+    rowData = users.map((user) => {
+      return {
+        id: user.id,
+        email: user.email,
+        userFlags: [user.isBanned, false],
+      };
+    });
+  }
+
   const [data, setData] = React.useState(rowData);
 
   const columns: Column<{ id: number; email: string; userFlags: boolean[] }>[] =
@@ -237,7 +242,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   var users: Array<User> = [];
   var isErrorPresent: Boolean = false;
   try {
-    users = await res.json();
+    if (res.ok) {
+      users = await res.json();
+    } else {
+      isErrorPresent = true;
+    }
   } catch (e) {
     isErrorPresent = true;
   }
