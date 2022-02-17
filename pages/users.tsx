@@ -6,6 +6,8 @@ import { getSession, useSession } from "next-auth/react";
 import { AppProps } from "next/dist/shared/lib/router/router";
 import { User } from "../interfaces/user";
 import BanButton from "../components/buttons/ban-button";
+import { UserTableData } from "../interfaces/user-table-data";
+import { UserFlags } from "../interfaces/user-flags";
 
 interface Props {
   users: User[];
@@ -14,14 +16,21 @@ interface Props {
 
 export default function Users({ users, isErrorPresent }: AppProps & Props) {
   const { data: session } = useSession();
-  const [data, setData] = React.useState(users);
+  const rowData: Array<UserTableData> = users.map((user) => {
+    return {
+      id: user.id,
+      email: user.email,
+      userFlags: [user.isBanned, false],
+    };
+  });
+  const [data, setData] = React.useState(rowData);
 
-  const columns: Column<{ id: number; email: string; isBanned: boolean }>[] =
+  const columns: Column<{ id: number; email: string; userFlags: boolean[] }>[] =
     React.useMemo(
       () => [
         { Header: "ID", accessor: "id" },
         { Header: "E-mail", accessor: "email" },
-        { Header: "Actions", accessor: "isBanned" },
+        { Header: "Actions", accessor: "userFlags" },
       ],
       []
     );
@@ -31,6 +40,10 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
 
   const toggleBan = async (id: number, isBanned: boolean) => {
     try {
+      const user = users.find((user) => user.id === id);
+      if (user) {
+        updateButtonState(data, user, id, setData, true);
+      }
       const res = await fetch(
         `/tutortek-api/users/${id}/${isBanned ? "unban" : "ban"}`,
         {
@@ -44,16 +57,7 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
       const updatedUser: Partial<User> = await res.json();
 
       if (updatedUser?.id) {
-        const index = data.findIndex((user) => user.id === updatedUser.id);
-
-        setData((prevData) => {
-          const newData = [...prevData];
-          newData[index] = {
-            ...newData[index],
-            ...updatedUser,
-          };
-          return newData;
-        });
+        updateButtonState(data, updatedUser, id, setData, false);
       }
     } catch (e) {
       isErrorPresent = true;
@@ -98,11 +102,15 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
                     const { key, ...cellProps } = cell.getCellProps();
                     return (
                       <td key={key} {...cellProps}>
-                        {cell.column.id === "isBanned" && (
+                        {cell.column.id === "userFlags" && (
                           <BanButton
-                            isBanned={row.original.isBanned}
+                            isBanned={row.original.userFlags[0]}
+                            isLoading={row.original.userFlags[1]}
                             handleBan={() =>
-                              toggleBan(row.original.id, row.original.isBanned)
+                              toggleBan(
+                                row.original.id,
+                                row.original.userFlags[0]
+                              )
                             }
                           />
                         )}
@@ -142,4 +150,31 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   return {
     props: { users, isErrorPresent },
   };
+};
+
+const updateButtonState = (
+  data: UserTableData[],
+  user: Partial<User>,
+  id: number,
+  setData: (value: React.SetStateAction<UserTableData[]>) => void,
+  isLoading: boolean
+) => {
+  const index = data.findIndex((user) => user.id === id);
+  const email = user.email ? user.email : "";
+  const isBanned = user.isBanned ? user.isBanned : false;
+  const idToAssign = user.id ? user.id : 0;
+  const dataToAdd = {
+    id: idToAssign,
+    email: email,
+    userFlags: [isBanned, isLoading],
+  };
+
+  setData((prevData) => {
+    const newData = [...prevData];
+    newData[index] = {
+      ...newData[index],
+      ...dataToAdd,
+    };
+    return newData;
+  });
 };
