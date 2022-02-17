@@ -14,6 +14,8 @@ interface Props {
   isErrorPresent: Boolean;
 }
 
+var currentPageIndex: number = 0;
+
 export default function Users({ users, isErrorPresent }: AppProps & Props) {
   const { data: session } = useSession();
   const rowData: Array<UserTableData> = users.map((user) => {
@@ -53,7 +55,7 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
     {
       columns,
       data,
-      initialState: { pageIndex: 0 },
+      initialState: { pageIndex: currentPageIndex },
     },
     usePagination
   );
@@ -114,33 +116,6 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
             ))}
           </thead>
           <tbody {...getTableBodyProps()}>
-            {/* {rows.map((row) => {
-              prepareRow(row);
-              return (
-                <tr {...row.getRowProps()} key={row.getRowProps().key}>
-                  {row.cells.map((cell) => {
-                    const { key, ...cellProps } = cell.getCellProps();
-                    return (
-                      <td key={key} {...cellProps}>
-                        {cell.column.id === "userFlags" && (
-                          <BanButton
-                            isBanned={row.original.userFlags[0]}
-                            isLoading={row.original.userFlags[1]}
-                            handleBan={() =>
-                              toggleBan(
-                                row.original.id,
-                                row.original.userFlags[0]
-                              )
-                            }
-                          />
-                        )}
-                        {cell.render("Cell")}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })} */}
             {page.map((row, i) => {
               prepareRow(row);
               return (
@@ -173,21 +148,39 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
       )}
 
       <div className="pagination d-flex justify-content-center align-items-center">
-        <Button onClick={() => gotoPage(0)} disabled={!canPreviousPage}>
+        <Button
+          onClick={() => {
+            gotoPage(0);
+            currentPageIndex = 0;
+          }}
+          disabled={!canPreviousPage}
+        >
           {"<<"}
         </Button>{" "}
         <Button
-          onClick={() => previousPage()}
+          onClick={() => {
+            previousPage();
+            currentPageIndex--;
+          }}
           disabled={!canPreviousPage}
           className="mx-2"
         >
           {"<"}
         </Button>{" "}
-        <Button onClick={() => nextPage()} disabled={!canNextPage}>
+        <Button
+          onClick={() => {
+            nextPage();
+            currentPageIndex++;
+          }}
+          disabled={!canNextPage}
+        >
           {">"}
         </Button>{" "}
         <Button
-          onClick={() => gotoPage(pageCount - 1)}
+          onClick={() => {
+            gotoPage(pageCount - 1);
+            currentPageIndex = pageCount - 1;
+          }}
           disabled={!canNextPage}
           className="mx-2"
         >
