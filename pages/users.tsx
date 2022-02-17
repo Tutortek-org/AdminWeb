@@ -4,18 +4,17 @@ import { Column, useTable } from "react-table";
 import { GetServerSideProps } from "next";
 import { getSession, useSession } from "next-auth/react";
 import { AppProps } from "next/dist/shared/lib/router/router";
-import { Button } from "react-bootstrap";
 import { User } from "../interfaces/user";
 import BanButton from "../components/buttons/ban-button";
 
 interface Props {
   users: User[];
+  isErrorPresent: Boolean;
 }
 
-export default function Users({ users }: AppProps & Props) {
+export default function Users({ users, isErrorPresent }: AppProps & Props) {
   const { data: session } = useSession();
   const [data, setData] = React.useState(users);
-  // const data = React.useMemo(() => users, [users]);
 
   const columns: Column<{ id: number; email: string; isBanned: boolean }>[] =
     React.useMemo(
@@ -26,7 +25,6 @@ export default function Users({ users }: AppProps & Props) {
       ],
       []
     );
-
   const tableInstance = useTable({ columns, data });
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
     tableInstance;
@@ -58,61 +56,66 @@ export default function Users({ users }: AppProps & Props) {
         });
       }
     } catch (e) {
-      // TODO: handle error failed to ban
-      console.error(e);
+      isErrorPresent = true;
     }
   };
 
   return (
     <SimpleLayout>
-      <table
-        {...getTableProps()}
-        className="table table-striped table-bordered table-hover"
-      >
-        <thead className="thead-dark">
-          {headerGroups.map((headerGroup) => (
-            <tr
-              {...headerGroup.getHeaderGroupProps()}
-              key={headerGroup.getHeaderGroupProps().key}
-            >
-              {headerGroup.headers.map((column) => (
-                <th
-                  {...column.getHeaderProps()}
-                  key={column.getHeaderProps().key}
-                  scope="col"
-                >
-                  {column.render("Header")}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody {...getTableBodyProps()}>
-          {rows.map((row) => {
-            prepareRow(row);
-            return (
-              <tr {...row.getRowProps()} key={row.getRowProps().key}>
-                {row.cells.map((cell) => {
-                  const { key, ...cellProps } = cell.getCellProps();
-                  return (
-                    <td key={key} {...cellProps}>
-                      {cell.column.id === "isBanned" && (
-                        <BanButton
-                          isBanned={row.original.isBanned}
-                          handleBan={() =>
-                            toggleBan(row.original.id, row.original.isBanned)
-                          }
-                        />
-                      )}
-                      {cell.render("Cell")}
-                    </td>
-                  );
-                })}
+      {isErrorPresent ? (
+        <div className="mb-3" style={{ color: "red" }}>
+          Error while sending a request to user API
+        </div>
+      ) : (
+        <table
+          {...getTableProps()}
+          className="table table-striped table-bordered table-hover"
+        >
+          <thead className="thead-dark">
+            {headerGroups.map((headerGroup) => (
+              <tr
+                {...headerGroup.getHeaderGroupProps()}
+                key={headerGroup.getHeaderGroupProps().key}
+              >
+                {headerGroup.headers.map((column) => (
+                  <th
+                    {...column.getHeaderProps()}
+                    key={column.getHeaderProps().key}
+                    scope="col"
+                  >
+                    {column.render("Header")}
+                  </th>
+                ))}
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            ))}
+          </thead>
+          <tbody {...getTableBodyProps()}>
+            {rows.map((row) => {
+              prepareRow(row);
+              return (
+                <tr {...row.getRowProps()} key={row.getRowProps().key}>
+                  {row.cells.map((cell) => {
+                    const { key, ...cellProps } = cell.getCellProps();
+                    return (
+                      <td key={key} {...cellProps}>
+                        {cell.column.id === "isBanned" && (
+                          <BanButton
+                            isBanned={row.original.isBanned}
+                            handleBan={() =>
+                              toggleBan(row.original.id, row.original.isBanned)
+                            }
+                          />
+                        )}
+                        {cell.render("Cell")}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
     </SimpleLayout>
   );
 }
@@ -128,12 +131,15 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     },
   });
 
-  // TODO: try catch and assert that its users array
-  const users: Array<User> = await res.json();
-
-  console.log(users);
+  var users: Array<User> = [];
+  var isErrorPresent: Boolean = false;
+  try {
+    users = await res.json();
+  } catch (e) {
+    isErrorPresent = true;
+  }
 
   return {
-    props: { users },
+    props: { users, isErrorPresent },
   };
 };
