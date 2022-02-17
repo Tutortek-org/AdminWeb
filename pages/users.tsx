@@ -1,13 +1,13 @@
 import SimpleLayout from "../components/layout/simple";
 import React from "react";
-import { Column, useTable } from "react-table";
+import { Column, useTable, usePagination } from "react-table";
 import { GetServerSideProps } from "next";
 import { getSession, useSession } from "next-auth/react";
 import { AppProps } from "next/dist/shared/lib/router/router";
 import { User } from "../interfaces/user";
 import BanButton from "../components/buttons/ban-button";
 import { UserTableData } from "../interfaces/user-table-data";
-import { UserFlags } from "../interfaces/user-flags";
+import { Button } from "react-bootstrap";
 
 interface Props {
   users: User[];
@@ -34,9 +34,29 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
       ],
       []
     );
-  const tableInstance = useTable({ columns, data });
-  const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
-    tableInstance;
+  const {
+    getTableProps,
+    getTableBodyProps,
+    headerGroups,
+    prepareRow,
+    page,
+    canPreviousPage,
+    canNextPage,
+    pageOptions,
+    pageCount,
+    gotoPage,
+    nextPage,
+    previousPage,
+    setPageSize,
+    state: { pageIndex, pageSize },
+  } = useTable(
+    {
+      columns,
+      data,
+      initialState: { pageIndex: 0 },
+    },
+    usePagination
+  );
 
   const toggleBan = async (id: number, isBanned: boolean) => {
     try {
@@ -94,7 +114,34 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
             ))}
           </thead>
           <tbody {...getTableBodyProps()}>
-            {rows.map((row) => {
+            {/* {rows.map((row) => {
+              prepareRow(row);
+              return (
+                <tr {...row.getRowProps()} key={row.getRowProps().key}>
+                  {row.cells.map((cell) => {
+                    const { key, ...cellProps } = cell.getCellProps();
+                    return (
+                      <td key={key} {...cellProps}>
+                        {cell.column.id === "userFlags" && (
+                          <BanButton
+                            isBanned={row.original.userFlags[0]}
+                            isLoading={row.original.userFlags[1]}
+                            handleBan={() =>
+                              toggleBan(
+                                row.original.id,
+                                row.original.userFlags[0]
+                              )
+                            }
+                          />
+                        )}
+                        {cell.render("Cell")}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })} */}
+            {page.map((row, i) => {
               prepareRow(row);
               return (
                 <tr {...row.getRowProps()} key={row.getRowProps().key}>
@@ -124,6 +171,61 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
           </tbody>
         </table>
       )}
+
+      <div className="pagination d-flex justify-content-center align-items-center">
+        <Button onClick={() => gotoPage(0)} disabled={!canPreviousPage}>
+          {"<<"}
+        </Button>{" "}
+        <Button
+          onClick={() => previousPage()}
+          disabled={!canPreviousPage}
+          className="mx-2"
+        >
+          {"<"}
+        </Button>{" "}
+        <Button onClick={() => nextPage()} disabled={!canNextPage}>
+          {">"}
+        </Button>{" "}
+        <Button
+          onClick={() => gotoPage(pageCount - 1)}
+          disabled={!canNextPage}
+          className="mx-2"
+        >
+          {">>"}
+        </Button>{" "}
+        <span>
+          Page{" "}
+          <strong>
+            {pageIndex + 1} of {pageOptions.length}
+          </strong>{" "}
+          | Go to page:{" "}
+        </span>
+        <span className="mx-2">
+          <input
+            type="number"
+            className="form-control"
+            defaultValue={pageIndex + 1}
+            onChange={(e) => {
+              const page = e.target.value ? Number(e.target.value) - 1 : 0;
+              gotoPage(page);
+            }}
+            style={{ width: "100px" }}
+          />
+        </span>{" "}
+        <select
+          value={pageSize}
+          className="form-select w-auto"
+          onChange={(e) => {
+            setPageSize(Number(e.target.value));
+          }}
+        >
+          {[10, 20, 30, 40, 50].map((pageSize) => (
+            <option key={pageSize} value={pageSize}>
+              Show {pageSize}
+            </option>
+          ))}
+        </select>
+      </div>
     </SimpleLayout>
   );
 }
