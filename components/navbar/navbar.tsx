@@ -39,7 +39,7 @@ export default function Navbar() {
                 </Link>
               </li>
               <li className="nav-item">
-                <Link href="/articles">
+                <Link href="/users">
                   <a className="nav-link">User control</a>
                 </Link>
               </li>
@@ -60,7 +60,6 @@ export default function Navbar() {
                     ? signOut({ redirect: false }).then(() => router.push("/"))
                     : router.push("/login")
                 }
-                className="nav-link"
                 variant={isAuthenticated ? "danger" : "primary"}
               >
                 {isAuthenticated ? "Log out" : "Login"}
