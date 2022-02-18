@@ -31,6 +31,17 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
   }
 
   const [data, setData] = React.useState(rowData);
+  const [search, setSearch] = React.useState("");
+  const handleSearch = (event: {
+    target: { value: React.SetStateAction<string> };
+  }) => {
+    setSearch(event.target.value);
+    rowData = rowData.filter((item) =>
+      item.email.toLowerCase().includes(event.target.value.toString())
+    );
+    currentPageIndex = 0;
+    setData(rowData);
+  };
 
   const columns: Column<{ id: number; email: string; userFlags: boolean[] }>[] =
     React.useMemo(
@@ -52,8 +63,6 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
     pageOptions,
     pageCount,
     gotoPage,
-    nextPage,
-    previousPage,
     setPageSize,
     state: { pageIndex, pageSize },
   } = useTable(
@@ -98,65 +107,79 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
           Error while sending a request to user API
         </div>
       ) : (
-        <table
-          {...getTableProps()}
-          className="table table-striped table-bordered table-hover"
-        >
-          <thead className="thead-dark">
-            {headerGroups.map((headerGroup) => (
-              <tr
-                {...headerGroup.getHeaderGroupProps()}
-                key={headerGroup.getHeaderGroupProps().key}
-              >
-                {headerGroup.headers.map((column) => (
-                  <th
-                    {...column.getHeaderProps()}
-                    key={column.getHeaderProps().key}
-                    scope="col"
-                  >
-                    {column.render("Header")}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody {...getTableBodyProps()}>
-            {page.map((row, i) => {
-              prepareRow(row);
-              return (
-                <tr {...row.getRowProps()} key={row.getRowProps().key}>
-                  {row.cells.map((cell) => {
-                    const { key, ...cellProps } = cell.getCellProps();
-                    return (
-                      <td key={key} {...cellProps}>
-                        {cell.column.id === "userFlags" && (
-                          <BanButton
-                            isBanned={row.original.userFlags[0]}
-                            isLoading={row.original.userFlags[1]}
-                            handleBan={() =>
-                              toggleBan(
-                                row.original.id,
-                                row.original.userFlags[0]
-                              )
-                            }
-                          />
-                        )}
-                        {cell.render("Cell")}
-                      </td>
-                    );
-                  })}
+        <>
+          <label
+            htmlFor="search"
+            className="d-flex justify-content-center align-items-center form-label"
+          >
+            Search by E-mail:
+            <input
+              id="search"
+              type="text"
+              onChange={handleSearch}
+              className="form-control w-auto mx-2"
+            />
+          </label>
+          <table
+            {...getTableProps()}
+            className="table table-striped table-bordered table-hover"
+          >
+            <thead className="thead-dark">
+              {headerGroups.map((headerGroup) => (
+                <tr
+                  {...headerGroup.getHeaderGroupProps()}
+                  key={headerGroup.getHeaderGroupProps().key}
+                >
+                  {headerGroup.headers.map((column) => (
+                    <th
+                      {...column.getHeaderProps()}
+                      key={column.getHeaderProps().key}
+                      scope="col"
+                    >
+                      {column.render("Header")}
+                    </th>
+                  ))}
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              ))}
+            </thead>
+            <tbody {...getTableBodyProps()}>
+              {page.map((row, i) => {
+                prepareRow(row);
+                return (
+                  <tr {...row.getRowProps()} key={row.getRowProps().key}>
+                    {row.cells.map((cell) => {
+                      const { key, ...cellProps } = cell.getCellProps();
+                      return (
+                        <td key={key} {...cellProps}>
+                          {cell.column.id === "userFlags" && (
+                            <BanButton
+                              isBanned={row.original.userFlags[0]}
+                              isLoading={row.original.userFlags[1]}
+                              handleBan={() =>
+                                toggleBan(
+                                  row.original.id,
+                                  row.original.userFlags[0]
+                                )
+                              }
+                            />
+                          )}
+                          {cell.render("Cell")}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </>
       )}
 
       <div className="pagination d-flex justify-content-center align-items-center">
         <Button
           onClick={() => {
-            gotoPage(0);
             currentPageIndex = 0;
+            gotoPage(currentPageIndex);
           }}
           disabled={!canPreviousPage}
         >
@@ -164,8 +187,8 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
         </Button>{" "}
         <Button
           onClick={() => {
-            previousPage();
             currentPageIndex--;
+            gotoPage(currentPageIndex);
           }}
           disabled={!canPreviousPage}
           className="mx-2"
@@ -174,8 +197,8 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
         </Button>{" "}
         <Button
           onClick={() => {
-            nextPage();
             currentPageIndex++;
+            gotoPage(currentPageIndex);
           }}
           disabled={!canNextPage}
         >
@@ -183,8 +206,8 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
         </Button>{" "}
         <Button
           onClick={() => {
-            gotoPage(pageCount - 1);
             currentPageIndex = pageCount - 1;
+            gotoPage(pageCount - 1);
           }}
           disabled={!canNextPage}
           className="mx-2"
