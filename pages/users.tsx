@@ -36,8 +36,9 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
     target: { value: React.SetStateAction<string> };
   }) => {
     setSearch(event.target.value);
+    const keyword = event.target.value.toString().toLowerCase();
     rowData = rowData.filter((item) =>
-      item.email.toLowerCase().includes(event.target.value.toString())
+      item.email.toLowerCase().includes(keyword)
     );
     currentPageIndex = 0;
     setData(rowData);
