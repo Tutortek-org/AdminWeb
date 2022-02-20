@@ -5,6 +5,7 @@ import React from "react";
 import { Button } from "react-bootstrap";
 import { Column, usePagination, useTable } from "react-table";
 import ApproveButton from "../components/buttons/approve-button";
+import RejectButton from "../components/buttons/reject-button";
 import SimpleLayout from "../components/layout/simple";
 import { Topic } from "../interfaces/topic";
 import { TopicTableData } from "../interfaces/topic-table-data";
@@ -14,22 +15,17 @@ interface Props {
   isErrorPresent: Boolean;
 }
 
-var currentPageIndex: number = 0;
+let currentPageIndex: number = 0;
 
 export default function Topics({ topics, isErrorPresent }: AppProps & Props) {
   const { data: session } = useSession();
-  var rowData: Array<TopicTableData> = [];
+  let rowData: Array<TopicTableData> = [];
 
   if (!isErrorPresent) {
-    rowData = topics.map((topic) => {
-      return {
-        id: topic.id,
-        name: topic.name,
-        topicFlags: [topic.isApproved, false],
-      };
-    });
+    rowData = mapTopicsToTableData(topics);
   }
 
+  const [originalData, setOriginalData] = React.useState(rowData);
   const [data, setData] = React.useState(rowData);
   const [search, setSearch] = React.useState("");
   const handleSearch = (event: {
@@ -37,11 +33,11 @@ export default function Topics({ topics, isErrorPresent }: AppProps & Props) {
   }) => {
     setSearch(event.target.value);
     const keyword = event.target.value.toString().toLowerCase();
-    rowData = rowData.filter((item) =>
+    const newData = originalData.filter((item) =>
       item.name.toLowerCase().includes(keyword)
     );
     currentPageIndex = 0;
-    setData(rowData);
+    setData(newData);
   };
 
   const columns: Column<{
@@ -51,7 +47,7 @@ export default function Topics({ topics, isErrorPresent }: AppProps & Props) {
   }>[] = React.useMemo(
     () => [
       { Header: "ID", accessor: "id" },
-      { Header: "E-mail", accessor: "name" },
+      { Header: "Name", accessor: "name" },
       { Header: "Actions", accessor: "topicFlags" },
     ],
     []
@@ -79,25 +75,33 @@ export default function Topics({ topics, isErrorPresent }: AppProps & Props) {
     usePagination
   );
 
-  const handleApproval = async (id: number) => {
+  const handleDecision = async (id: number, approve: boolean) => {
     try {
       const topic = topics.find((topic) => topic.id === id);
       if (topic) {
         updateButtonState(data, topic, id, setData, true);
       }
-      const res = await fetch(`/tutortek-api/topics/${id}/approve`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${session?.accessToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-      const updatedTopic: Partial<Topic> = await res.json();
+      const res = await fetch(
+        `/tutortek-api/topics/${id}${approve ? "/approve" : ""}`,
+        {
+          method: approve ? "PUT" : "DELETE",
+          headers: {
+            Authorization: `Bearer ${session?.accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-      if (updatedTopic?.id) {
-        const newData = data.filter((item) => item.id !== updatedTopic.id);
-        setData(newData);
-        //updateButtonState(data, updatedTopic, id, setData, false);
+      if (!res.ok) {
+        isErrorPresent = true;
+        return;
+      }
+
+      const newTopics = await fetchTopics(session?.accessToken as string);
+      if (newTopics) {
+        const newRowData = mapTopicsToTableData(newTopics);
+        setData(newRowData);
+        setOriginalData(newRowData);
       }
     } catch (e) {
       isErrorPresent = true;
@@ -157,12 +161,21 @@ export default function Topics({ topics, isErrorPresent }: AppProps & Props) {
                       return (
                         <td key={key} {...cellProps}>
                           {cell.column.id === "topicFlags" && (
-                            <ApproveButton
-                              isLoading={row.original.topicFlags[1]}
-                              handleApproval={() =>
-                                handleApproval(row.original.id)
-                              }
-                            />
+                            <>
+                              <ApproveButton
+                                isLoading={row.original.topicFlags[1]}
+                                handleApproval={() =>
+                                  handleDecision(row.original.id, true)
+                                }
+                              />
+                              <RejectButton
+                                isLoading={row.original.topicFlags[1]}
+                                className="mx-2"
+                                handleApproval={() =>
+                                  handleDecision(row.original.id, false)
+                                }
+                              />
+                            </>
                           )}
                           {cell.render("Cell")}
                         </td>
@@ -255,31 +268,19 @@ export default function Topics({ topics, isErrorPresent }: AppProps & Props) {
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const session = await getSession(context);
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/topics/unapproved`,
-    {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session?.accessToken}`,
-      },
-    }
-  );
+  const topics = await fetchTopics(session?.accessToken as string);
 
-  var topics: Array<Topic> = [];
-  var isErrorPresent: Boolean = false;
-  try {
-    if (res.ok) {
-      topics = await res.json();
-    } else {
-      isErrorPresent = true;
-    }
-  } catch (e) {
-    isErrorPresent = true;
+  if (topics) {
+    return {
+      props: {
+        topics,
+        isErrorPresent: false,
+      },
+    };
   }
 
   return {
-    props: { topics, isErrorPresent },
+    props: { topics: [], isErrorPresent: true },
   };
 };
 
@@ -308,4 +309,36 @@ const updateButtonState = (
     };
     return newData;
   });
+};
+
+const mapTopicsToTableData = (topics: Topic[]): TopicTableData[] => {
+  return topics.map((topic) => {
+    return {
+      id: topic.id,
+      name: topic.name,
+      topicFlags: [topic.isApproved, false],
+    };
+  });
+};
+
+const fetchTopics = async (token: string): Promise<Topic[] | null> => {
+  const isServer = typeof window === "undefined";
+  const host = isServer ? process.env.NEXT_PUBLIC_BASE_URL : "/tutortek-api";
+
+  try {
+    const res = await fetch(`${host}/topics/unapproved`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (res.ok) {
+      const topics: Topic[] = await res.json();
+      return topics;
+    }
+  } catch (e) {}
+
+  return null;
 };

@@ -1,19 +1,17 @@
 import { useFormik } from "formik";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/router";
+import { useState } from "react";
 import styles from "./login-form.module.css";
 
 interface Props {
   csrfToken: string;
 }
 
-var isErrorPresent = false;
-
 export default function LoginForm({ csrfToken }: Props) {
+  const [error, setError] = useState("");
   const router = useRouter();
-  router.events.on("routeChangeComplete", () => {
-    isErrorPresent = false;
-  });
+
   const formik = useFormik({
     initialValues: {
       email: "",
@@ -26,11 +24,12 @@ export default function LoginForm({ csrfToken }: Props) {
         ...values,
       });
 
-      if (response?.ok) {
-        router.push("/");
-      } else {
-        isErrorPresent = true;
+      if (response?.error) {
+        setError("Invalid email or password");
+        return;
       }
+
+      router.push("/");
     },
   });
 
@@ -64,9 +63,9 @@ export default function LoginForm({ csrfToken }: Props) {
           />
         </div>
 
-        {isErrorPresent && (
+        {error && (
           <div className="mb-3" style={{ color: "red" }}>
-            Wrong username or password
+            {error}
           </div>
         )}
 
