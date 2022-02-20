@@ -2,7 +2,9 @@ import { GetServerSideProps } from "next";
 import { getSession, useSession } from "next-auth/react";
 import { AppProps } from "next/app";
 import React from "react";
+import { Button } from "react-bootstrap";
 import { Column, usePagination, useTable } from "react-table";
+import ApproveButton from "../components/buttons/approve-button";
 import SimpleLayout from "../components/layout/simple";
 import { Topic } from "../interfaces/topic";
 import { TopicTableData } from "../interfaces/topic-table-data";
@@ -93,7 +95,9 @@ export default function Topics({ topics, isErrorPresent }: AppProps & Props) {
       const updatedTopic: Partial<Topic> = await res.json();
 
       if (updatedTopic?.id) {
-        updateButtonState(data, updatedTopic, id, setData, false);
+        const newData = data.filter((item) => item.id !== updatedTopic.id);
+        setData(newData);
+        //updateButtonState(data, updatedTopic, id, setData, false);
       }
     } catch (e) {
       isErrorPresent = true;
@@ -102,7 +106,148 @@ export default function Topics({ topics, isErrorPresent }: AppProps & Props) {
 
   return (
     <SimpleLayout>
-      <div className="row">Write Form</div>
+      {isErrorPresent ? (
+        <div className="mb-3" style={{ color: "red" }}>
+          Error while sending a request to topic API
+        </div>
+      ) : (
+        <>
+          {" "}
+          <label
+            htmlFor="search"
+            className="d-flex justify-content-center align-items-center form-label"
+          >
+            Search by name:
+            <input
+              id="search"
+              type="text"
+              onChange={handleSearch}
+              className="form-control w-auto mx-2"
+            />
+          </label>
+          <table
+            {...getTableProps()}
+            className="table table-striped table-bordered table-hover"
+          >
+            <thead className="thead-dark">
+              {headerGroups.map((headerGroup) => (
+                <tr
+                  {...headerGroup.getHeaderGroupProps()}
+                  key={headerGroup.getHeaderGroupProps().key}
+                >
+                  {headerGroup.headers.map((column) => (
+                    <th
+                      {...column.getHeaderProps()}
+                      key={column.getHeaderProps().key}
+                      scope="col"
+                    >
+                      {column.render("Header")}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody {...getTableBodyProps()}>
+              {page.map((row, i) => {
+                prepareRow(row);
+                return (
+                  <tr {...row.getRowProps()} key={row.getRowProps().key}>
+                    {row.cells.map((cell) => {
+                      const { key, ...cellProps } = cell.getCellProps();
+                      return (
+                        <td key={key} {...cellProps}>
+                          {cell.column.id === "topicFlags" && (
+                            <ApproveButton
+                              isLoading={row.original.topicFlags[1]}
+                              handleApproval={() =>
+                                handleApproval(row.original.id)
+                              }
+                            />
+                          )}
+                          {cell.render("Cell")}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      <div className="pagination d-flex justify-content-center align-items-center">
+        <Button
+          onClick={() => {
+            currentPageIndex = 0;
+            gotoPage(currentPageIndex);
+          }}
+          disabled={!canPreviousPage}
+        >
+          {"<<"}
+        </Button>{" "}
+        <Button
+          onClick={() => {
+            currentPageIndex--;
+            gotoPage(currentPageIndex);
+          }}
+          disabled={!canPreviousPage}
+          className="mx-2"
+        >
+          {"<"}
+        </Button>{" "}
+        <Button
+          onClick={() => {
+            currentPageIndex++;
+            gotoPage(currentPageIndex);
+          }}
+          disabled={!canNextPage}
+        >
+          {">"}
+        </Button>{" "}
+        <Button
+          onClick={() => {
+            currentPageIndex = pageCount - 1;
+            gotoPage(pageCount - 1);
+          }}
+          disabled={!canNextPage}
+          className="mx-2"
+        >
+          {">>"}
+        </Button>{" "}
+        <span>
+          Page{" "}
+          <strong>
+            {pageIndex + 1} of {pageOptions.length}
+          </strong>{" "}
+          | Go to page:{" "}
+        </span>
+        <span className="mx-2">
+          <input
+            type="number"
+            className="form-control"
+            defaultValue={pageIndex + 1}
+            onChange={(e) => {
+              const page = e.target.value ? Number(e.target.value) - 1 : 0;
+              gotoPage(page);
+            }}
+            style={{ width: "100px" }}
+          />
+        </span>{" "}
+        <select
+          value={pageSize}
+          className="form-select w-auto"
+          onChange={(e) => {
+            setPageSize(Number(e.target.value));
+          }}
+        >
+          {[10, 20, 30, 40, 50].map((pageSize) => (
+            <option key={pageSize} value={pageSize}>
+              Show {pageSize}
+            </option>
+          ))}
+        </select>
+      </div>
     </SimpleLayout>
   );
 }
