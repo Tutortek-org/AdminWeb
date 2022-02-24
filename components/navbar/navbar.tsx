@@ -39,7 +39,7 @@ export default function Navbar() {
                 </Link>
               </li>
               <li className="nav-item">
-                <Link href="/">
+                <Link href="/materials">
                   <a className="nav-link">Pending materials</a>
                 </Link>
               </li>
