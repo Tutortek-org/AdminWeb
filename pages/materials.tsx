@@ -1,35 +1,35 @@
-import SimpleLayout from "../components/layout/simple";
-import React from "react";
-import { Column, useTable, usePagination } from "react-table";
 import { GetServerSideProps } from "next";
 import { getSession, useSession } from "next-auth/react";
-import { AppProps } from "next/dist/shared/lib/router/router";
-import { User } from "../interfaces/user/user";
-import BanButton from "../components/buttons/ban-button";
-import { UserTableData } from "../interfaces/user/user-table-data";
+import { AppProps } from "next/app";
+import Link from "next/link";
+import React from "react";
 import { Button } from "react-bootstrap";
+import { Column, usePagination, useTable } from "react-table";
+import ApproveButton from "../components/buttons/approve-button";
+import RejectButton from "../components/buttons/reject-button";
+import SimpleLayout from "../components/layout/simple";
+import { Material } from "../interfaces/material/material";
+import { MaterialTableData } from "../interfaces/material/material-table-data";
 
 interface Props {
-  users: User[];
+  materials: Material[];
   isErrorPresent: Boolean;
 }
 
-var currentPageIndex: number = 0;
+let currentPageIndex: number = 0;
 
-export default function Users({ users, isErrorPresent }: AppProps & Props) {
+export default function Materials({
+  materials,
+  isErrorPresent,
+}: AppProps & Props) {
   const { data: session } = useSession();
-  var rowData: Array<UserTableData> = [];
+  let rowData: Array<MaterialTableData> = [];
 
   if (!isErrorPresent) {
-    rowData = users.map((user) => {
-      return {
-        id: user.id,
-        email: user.email,
-        userFlags: [user.isBanned, false],
-      };
-    });
+    rowData = mapMaterialsToTableData(materials);
   }
 
+  const [originalData, setOriginalData] = React.useState(rowData);
   const [data, setData] = React.useState(rowData);
   const [search, setSearch] = React.useState("");
   const handleSearch = (event: {
@@ -37,22 +37,30 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
   }) => {
     setSearch(event.target.value);
     const keyword = event.target.value.toString().toLowerCase();
-    rowData = rowData.filter((item) =>
-      item.email.toLowerCase().includes(keyword)
+    const newData = originalData.filter((item) =>
+      item.name.toLowerCase().includes(keyword)
     );
     currentPageIndex = 0;
-    setData(rowData);
+    setData(newData);
   };
 
-  const columns: Column<{ id: number; email: string; userFlags: boolean[] }>[] =
-    React.useMemo(
-      () => [
-        { Header: "ID", accessor: "id" },
-        { Header: "E-mail", accessor: "email" },
-        { Header: "Actions", accessor: "userFlags" },
-      ],
-      []
-    );
+  const columns: Column<{
+    id: number;
+    name: string;
+    description: string;
+    link: string;
+    materialFlags: boolean[];
+  }>[] = React.useMemo(
+    () => [
+      { Header: "ID", accessor: "id" },
+      { Header: "Name", accessor: "name" },
+      { Header: "Description", accessor: "description" },
+      { Header: "Link", accessor: "link" },
+      { Header: "Actions", accessor: "materialFlags" },
+    ],
+    []
+  );
+
   const {
     getTableProps,
     getTableBodyProps,
@@ -75,26 +83,33 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
     usePagination
   );
 
-  const toggleBan = async (id: number, isBanned: boolean) => {
+  const handleDecision = async (id: number, approve: boolean) => {
     try {
-      const user = users.find((user) => user.id === id);
-      if (user) {
-        updateButtonState(data, user, id, setData, true);
+      const material = materials.find((material) => material.id === id);
+      if (material) {
+        updateButtonState(data, material, id, setData, true);
       }
       const res = await fetch(
-        `/tutortek-api/users/${id}/${isBanned ? "unban" : "ban"}`,
+        `/tutortek-api/materials/${id}${approve ? "/approve" : ""}`,
         {
-          method: "PUT",
+          method: approve ? "PUT" : "DELETE",
           headers: {
             Authorization: `Bearer ${session?.accessToken}`,
             "Content-Type": "application/json",
           },
         }
       );
-      const updatedUser: Partial<User> = await res.json();
 
-      if (updatedUser?.id) {
-        updateButtonState(data, updatedUser, id, setData, false);
+      if (!res.ok) {
+        isErrorPresent = true;
+        return;
+      }
+
+      const newMaterials = await fetchMaterials(session?.accessToken as string);
+      if (newMaterials) {
+        const newRowData = mapMaterialsToTableData(newMaterials);
+        setData(newRowData);
+        setOriginalData(newRowData);
       }
     } catch (e) {
       isErrorPresent = true;
@@ -105,15 +120,16 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
     <SimpleLayout>
       {isErrorPresent ? (
         <div className="mb-3" style={{ color: "red" }}>
-          Error while sending a request to user API
+          Error while sending a request to learning materials API
         </div>
       ) : (
         <>
+          {" "}
           <label
             htmlFor="search"
             className="d-flex justify-content-center align-items-center form-label"
           >
-            Search by E-mail:
+            Search by name:
             <input
               id="search"
               type="text"
@@ -152,17 +168,26 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
                       const { key, ...cellProps } = cell.getCellProps();
                       return (
                         <td key={key} {...cellProps} className="align-middle">
-                          {cell.column.id === "userFlags" ? (
-                            <BanButton
-                              isBanned={row.original.userFlags[0]}
-                              isLoading={row.original.userFlags[1]}
-                              handleBan={() =>
-                                toggleBan(
-                                  row.original.id,
-                                  row.original.userFlags[0]
-                                )
-                              }
-                            />
+                          {cell.column.id === "link" ? (
+                            <Link href={row.original.link}>
+                              <a className="nav-link">{row.original.link}</a>
+                            </Link>
+                          ) : cell.column.id === "materialFlags" ? (
+                            <>
+                              <ApproveButton
+                                isLoading={row.original.materialFlags[1]}
+                                handleApproval={() =>
+                                  handleDecision(row.original.id, true)
+                                }
+                              />
+                              <RejectButton
+                                isLoading={row.original.materialFlags[1]}
+                                className="mx-2"
+                                handleApproval={() =>
+                                  handleDecision(row.original.id, false)
+                                }
+                              />
+                            </>
                           ) : (
                             cell.render("Cell")
                           )}
@@ -254,49 +279,25 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const session = await getSession(context);
-
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/users`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session?.accessToken}`,
-    },
-  });
-
-  var users: Array<User> = [];
-  var isErrorPresent: Boolean = false;
-  try {
-    if (res.ok) {
-      users = await res.json();
-    } else {
-      isErrorPresent = true;
-    }
-  } catch (e) {
-    isErrorPresent = true;
-  }
-
-  return {
-    props: { users, isErrorPresent },
-  };
-};
-
 const updateButtonState = (
-  data: UserTableData[],
-  user: Partial<User>,
+  data: MaterialTableData[],
+  material: Partial<Material>,
   id: number,
-  setData: (value: React.SetStateAction<UserTableData[]>) => void,
+  setData: (value: React.SetStateAction<MaterialTableData[]>) => void,
   isLoading: boolean
 ) => {
-  const index = data.findIndex((user) => user.id === id);
-  const email = user.email ? user.email : "";
-  const isBanned = user.isBanned ? user.isBanned : false;
-  const idToAssign = user.id ? user.id : 0;
+  const index = data.findIndex((material) => material.id === id);
+  const name = material.name ? material.name : "";
+  const isApproved = material.isApproved ? material.isApproved : false;
+  const idToAssign = material.id ? material.id : 0;
+  const description = material.description ? material.description : "";
+  const link = material.link ? material.link : "";
   const dataToAdd = {
     id: idToAssign,
-    email: email,
-    userFlags: [isBanned, isLoading],
+    name: name,
+    description: description,
+    link: link,
+    materialFlags: [isApproved, isLoading],
   };
 
   setData((prevData) => {
@@ -307,4 +308,59 @@ const updateButtonState = (
     };
     return newData;
   });
+};
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const session = await getSession(context);
+
+  const materials = await fetchMaterials(session?.accessToken as string);
+
+  if (materials) {
+    return {
+      props: {
+        materials,
+        isErrorPresent: false,
+      },
+    };
+  }
+
+  return {
+    props: { materials: [], isErrorPresent: true },
+  };
+};
+
+const mapMaterialsToTableData = (
+  materials: Material[]
+): MaterialTableData[] => {
+  return materials.map((material) => {
+    return {
+      id: material.id,
+      name: material.name,
+      description: material.description,
+      link: material.link,
+      materialFlags: [material.isApproved, false],
+    };
+  });
+};
+
+const fetchMaterials = async (token: string): Promise<Material[] | null> => {
+  const isServer = typeof window === "undefined";
+  const host = isServer ? process.env.NEXT_PUBLIC_BASE_URL : "/tutortek-api";
+
+  try {
+    const res = await fetch(`${host}/materials/unapproved`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (res.ok) {
+      const materials: Material[] = await res.json();
+      return materials;
+    }
+  } catch (e) {}
+
+  return null;
 };

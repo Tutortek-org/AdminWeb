@@ -33,9 +33,14 @@ export default function Navbar() {
         >
           {isAuthenticated ? (
             <ul className="navbar-nav mr-auto">
-              <li className="nav-item active">
-                <Link href="/">
-                  <a className="nav-link">Pending content</a>
+              <li className="nav-item">
+                <Link href="/topics">
+                  <a className="nav-link">Pending topics</a>
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link href="/materials">
+                  <a className="nav-link">Pending materials</a>
                 </Link>
               </li>
               <li className="nav-item">
@@ -44,7 +49,7 @@ export default function Navbar() {
                 </Link>
               </li>
               <li className="nav-item">
-                <Link href="/write">
+                <Link href="/notifications">
                   <a className="nav-link">Notifications</a>
                 </Link>
               </li>

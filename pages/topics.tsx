@@ -1,35 +1,31 @@
-import SimpleLayout from "../components/layout/simple";
-import React from "react";
-import { Column, useTable, usePagination } from "react-table";
 import { GetServerSideProps } from "next";
 import { getSession, useSession } from "next-auth/react";
-import { AppProps } from "next/dist/shared/lib/router/router";
-import { User } from "../interfaces/user/user";
-import BanButton from "../components/buttons/ban-button";
-import { UserTableData } from "../interfaces/user/user-table-data";
+import { AppProps } from "next/app";
+import React from "react";
 import { Button } from "react-bootstrap";
+import { Column, usePagination, useTable } from "react-table";
+import ApproveButton from "../components/buttons/approve-button";
+import RejectButton from "../components/buttons/reject-button";
+import SimpleLayout from "../components/layout/simple";
+import { Topic } from "../interfaces/topic/topic";
+import { TopicTableData } from "../interfaces/topic/topic-table-data";
 
 interface Props {
-  users: User[];
+  topics: Topic[];
   isErrorPresent: Boolean;
 }
 
-var currentPageIndex: number = 0;
+let currentPageIndex: number = 0;
 
-export default function Users({ users, isErrorPresent }: AppProps & Props) {
+export default function Topics({ topics, isErrorPresent }: AppProps & Props) {
   const { data: session } = useSession();
-  var rowData: Array<UserTableData> = [];
+  let rowData: Array<TopicTableData> = [];
 
   if (!isErrorPresent) {
-    rowData = users.map((user) => {
-      return {
-        id: user.id,
-        email: user.email,
-        userFlags: [user.isBanned, false],
-      };
-    });
+    rowData = mapTopicsToTableData(topics);
   }
 
+  const [originalData, setOriginalData] = React.useState(rowData);
   const [data, setData] = React.useState(rowData);
   const [search, setSearch] = React.useState("");
   const handleSearch = (event: {
@@ -37,22 +33,26 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
   }) => {
     setSearch(event.target.value);
     const keyword = event.target.value.toString().toLowerCase();
-    rowData = rowData.filter((item) =>
-      item.email.toLowerCase().includes(keyword)
+    const newData = originalData.filter((item) =>
+      item.name.toLowerCase().includes(keyword)
     );
     currentPageIndex = 0;
-    setData(rowData);
+    setData(newData);
   };
 
-  const columns: Column<{ id: number; email: string; userFlags: boolean[] }>[] =
-    React.useMemo(
-      () => [
-        { Header: "ID", accessor: "id" },
-        { Header: "E-mail", accessor: "email" },
-        { Header: "Actions", accessor: "userFlags" },
-      ],
-      []
-    );
+  const columns: Column<{
+    id: number;
+    name: string;
+    topicFlags: boolean[];
+  }>[] = React.useMemo(
+    () => [
+      { Header: "ID", accessor: "id" },
+      { Header: "Name", accessor: "name" },
+      { Header: "Actions", accessor: "topicFlags" },
+    ],
+    []
+  );
+
   const {
     getTableProps,
     getTableBodyProps,
@@ -75,26 +75,33 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
     usePagination
   );
 
-  const toggleBan = async (id: number, isBanned: boolean) => {
+  const handleDecision = async (id: number, approve: boolean) => {
     try {
-      const user = users.find((user) => user.id === id);
-      if (user) {
-        updateButtonState(data, user, id, setData, true);
+      const topic = topics.find((topic) => topic.id === id);
+      if (topic) {
+        updateButtonState(data, topic, id, setData, true);
       }
       const res = await fetch(
-        `/tutortek-api/users/${id}/${isBanned ? "unban" : "ban"}`,
+        `/tutortek-api/topics/${id}${approve ? "/approve" : ""}`,
         {
-          method: "PUT",
+          method: approve ? "PUT" : "DELETE",
           headers: {
             Authorization: `Bearer ${session?.accessToken}`,
             "Content-Type": "application/json",
           },
         }
       );
-      const updatedUser: Partial<User> = await res.json();
 
-      if (updatedUser?.id) {
-        updateButtonState(data, updatedUser, id, setData, false);
+      if (!res.ok) {
+        isErrorPresent = true;
+        return;
+      }
+
+      const newTopics = await fetchTopics(session?.accessToken as string);
+      if (newTopics) {
+        const newRowData = mapTopicsToTableData(newTopics);
+        setData(newRowData);
+        setOriginalData(newRowData);
       }
     } catch (e) {
       isErrorPresent = true;
@@ -105,15 +112,16 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
     <SimpleLayout>
       {isErrorPresent ? (
         <div className="mb-3" style={{ color: "red" }}>
-          Error while sending a request to user API
+          Error while sending a request to topic API
         </div>
       ) : (
         <>
+          {" "}
           <label
             htmlFor="search"
             className="d-flex justify-content-center align-items-center form-label"
           >
-            Search by E-mail:
+            Search by name:
             <input
               id="search"
               type="text"
@@ -152,17 +160,22 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
                       const { key, ...cellProps } = cell.getCellProps();
                       return (
                         <td key={key} {...cellProps} className="align-middle">
-                          {cell.column.id === "userFlags" ? (
-                            <BanButton
-                              isBanned={row.original.userFlags[0]}
-                              isLoading={row.original.userFlags[1]}
-                              handleBan={() =>
-                                toggleBan(
-                                  row.original.id,
-                                  row.original.userFlags[0]
-                                )
-                              }
-                            />
+                          {cell.column.id === "topicFlags" ? (
+                            <>
+                              <ApproveButton
+                                isLoading={row.original.topicFlags[1]}
+                                handleApproval={() =>
+                                  handleDecision(row.original.id, true)
+                                }
+                              />
+                              <RejectButton
+                                isLoading={row.original.topicFlags[1]}
+                                className="mx-2"
+                                handleApproval={() =>
+                                  handleDecision(row.original.id, false)
+                                }
+                              />
+                            </>
                           ) : (
                             cell.render("Cell")
                           )}
@@ -257,46 +270,37 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const session = await getSession(context);
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/users`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session?.accessToken}`,
-    },
-  });
+  const topics = await fetchTopics(session?.accessToken as string);
 
-  var users: Array<User> = [];
-  var isErrorPresent: Boolean = false;
-  try {
-    if (res.ok) {
-      users = await res.json();
-    } else {
-      isErrorPresent = true;
-    }
-  } catch (e) {
-    isErrorPresent = true;
+  if (topics) {
+    return {
+      props: {
+        topics,
+        isErrorPresent: false,
+      },
+    };
   }
 
   return {
-    props: { users, isErrorPresent },
+    props: { topics: [], isErrorPresent: true },
   };
 };
 
 const updateButtonState = (
-  data: UserTableData[],
-  user: Partial<User>,
+  data: TopicTableData[],
+  topic: Partial<Topic>,
   id: number,
-  setData: (value: React.SetStateAction<UserTableData[]>) => void,
+  setData: (value: React.SetStateAction<TopicTableData[]>) => void,
   isLoading: boolean
 ) => {
-  const index = data.findIndex((user) => user.id === id);
-  const email = user.email ? user.email : "";
-  const isBanned = user.isBanned ? user.isBanned : false;
-  const idToAssign = user.id ? user.id : 0;
+  const index = data.findIndex((topic) => topic.id === id);
+  const name = topic.name ? topic.name : "";
+  const isApproved = topic.isApproved ? topic.isApproved : false;
+  const idToAssign = topic.id ? topic.id : 0;
   const dataToAdd = {
     id: idToAssign,
-    email: email,
-    userFlags: [isBanned, isLoading],
+    name: name,
+    topicFlags: [isApproved, isLoading],
   };
 
   setData((prevData) => {
@@ -307,4 +311,36 @@ const updateButtonState = (
     };
     return newData;
   });
+};
+
+const mapTopicsToTableData = (topics: Topic[]): TopicTableData[] => {
+  return topics.map((topic) => {
+    return {
+      id: topic.id,
+      name: topic.name,
+      topicFlags: [topic.isApproved, false],
+    };
+  });
+};
+
+const fetchTopics = async (token: string): Promise<Topic[] | null> => {
+  const isServer = typeof window === "undefined";
+  const host = isServer ? process.env.NEXT_PUBLIC_BASE_URL : "/tutortek-api";
+
+  try {
+    const res = await fetch(`${host}/topics/unapproved`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (res.ok) {
+      const topics: Topic[] = await res.json();
+      return topics;
+    }
+  } catch (e) {}
+
+  return null;
 };
