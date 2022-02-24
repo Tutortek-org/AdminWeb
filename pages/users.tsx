@@ -151,8 +151,8 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
                     {row.cells.map((cell) => {
                       const { key, ...cellProps } = cell.getCellProps();
                       return (
-                        <td key={key} {...cellProps}>
-                          {cell.column.id === "userFlags" && (
+                        <td key={key} {...cellProps} className="align-middle">
+                          {cell.column.id === "userFlags" ? (
                             <BanButton
                               isBanned={row.original.userFlags[0]}
                               isLoading={row.original.userFlags[1]}
@@ -163,8 +163,9 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
                                 )
                               }
                             />
+                          ) : (
+                            cell.render("Cell")
                           )}
-                          {cell.render("Cell")}
                         </td>
                       );
                     })}

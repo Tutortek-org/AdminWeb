@@ -1,6 +1,7 @@
 import { GetServerSideProps } from "next";
 import { getSession, useSession } from "next-auth/react";
 import { AppProps } from "next/app";
+import Link from "next/link";
 import React from "react";
 import { Button } from "react-bootstrap";
 import { Column, usePagination, useTable } from "react-table";
@@ -166,8 +167,12 @@ export default function Materials({
                     {row.cells.map((cell) => {
                       const { key, ...cellProps } = cell.getCellProps();
                       return (
-                        <td key={key} {...cellProps}>
-                          {cell.column.id === "materialFlags" && (
+                        <td key={key} {...cellProps} className="align-middle">
+                          {cell.column.id === "link" ? (
+                            <Link href={row.original.link}>
+                              <a className="nav-link">{row.original.link}</a>
+                            </Link>
+                          ) : cell.column.id === "materialFlags" ? (
                             <>
                               <ApproveButton
                                 isLoading={row.original.materialFlags[1]}
@@ -183,8 +188,9 @@ export default function Materials({
                                 }
                               />
                             </>
+                          ) : (
+                            cell.render("Cell")
                           )}
-                          {cell.render("Cell")}
                         </td>
                       );
                     })}

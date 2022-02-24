@@ -159,8 +159,8 @@ export default function Topics({ topics, isErrorPresent }: AppProps & Props) {
                     {row.cells.map((cell) => {
                       const { key, ...cellProps } = cell.getCellProps();
                       return (
-                        <td key={key} {...cellProps}>
-                          {cell.column.id === "topicFlags" && (
+                        <td key={key} {...cellProps} className="align-middle">
+                          {cell.column.id === "topicFlags" ? (
                             <>
                               <ApproveButton
                                 isLoading={row.original.topicFlags[1]}
@@ -176,8 +176,9 @@ export default function Topics({ topics, isErrorPresent }: AppProps & Props) {
                                 }
                               />
                             </>
+                          ) : (
+                            cell.render("Cell")
                           )}
-                          {cell.render("Cell")}
                         </td>
                       );
                     })}
