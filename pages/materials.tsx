@@ -7,8 +7,8 @@ import { Column, usePagination, useTable } from "react-table";
 import ApproveButton from "../components/buttons/approve-button";
 import RejectButton from "../components/buttons/reject-button";
 import SimpleLayout from "../components/layout/simple";
-import { Material } from "../interfaces/material";
-import { MaterialTableData } from "../interfaces/material-table-data";
+import { Material } from "../interfaces/material/material";
+import { MaterialTableData } from "../interfaces/material/material-table-data";
 
 interface Props {
   materials: Material[];
@@ -238,7 +238,8 @@ export default function Materials({
         <span>
           Page{" "}
           <strong>
-            {pageIndex + 1} of {pageOptions.length}
+            {pageIndex + 1} of{" "}
+            {pageOptions.length === 0 ? 1 : pageOptions.length}
           </strong>{" "}
           | Go to page:{" "}
         </span>

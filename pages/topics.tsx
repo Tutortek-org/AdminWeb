@@ -7,8 +7,8 @@ import { Column, usePagination, useTable } from "react-table";
 import ApproveButton from "../components/buttons/approve-button";
 import RejectButton from "../components/buttons/reject-button";
 import SimpleLayout from "../components/layout/simple";
-import { Topic } from "../interfaces/topic";
-import { TopicTableData } from "../interfaces/topic-table-data";
+import { Topic } from "../interfaces/topic/topic";
+import { TopicTableData } from "../interfaces/topic/topic-table-data";
 
 interface Props {
   topics: Topic[];
@@ -231,7 +231,8 @@ export default function Topics({ topics, isErrorPresent }: AppProps & Props) {
         <span>
           Page{" "}
           <strong>
-            {pageIndex + 1} of {pageOptions.length}
+            {pageIndex + 1} of{" "}
+            {pageOptions.length === 0 ? 1 : pageOptions.length}
           </strong>{" "}
           | Go to page:{" "}
         </span>

@@ -4,9 +4,9 @@ import { Column, useTable, usePagination } from "react-table";
 import { GetServerSideProps } from "next";
 import { getSession, useSession } from "next-auth/react";
 import { AppProps } from "next/dist/shared/lib/router/router";
-import { User } from "../interfaces/user";
+import { User } from "../interfaces/user/user";
 import BanButton from "../components/buttons/ban-button";
-import { UserTableData } from "../interfaces/user-table-data";
+import { UserTableData } from "../interfaces/user/user-table-data";
 import { Button } from "react-bootstrap";
 
 interface Props {
@@ -218,7 +218,8 @@ export default function Users({ users, isErrorPresent }: AppProps & Props) {
         <span>
           Page{" "}
           <strong>
-            {pageIndex + 1} of {pageOptions.length}
+            {pageIndex + 1} of{" "}
+            {pageOptions.length === 0 ? 1 : pageOptions.length}
           </strong>{" "}
           | Go to page:{" "}
         </span>
