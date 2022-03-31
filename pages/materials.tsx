@@ -1,6 +1,6 @@
-import { GetServerSideProps } from "next";
+import { GetServerSideProps } from "next/types";
 import { getSession, useSession } from "next-auth/react";
-import { AppProps } from "next/app";
+import AppProps from "next/app";
 import Link from "next/link";
 import React from "react";
 import { Button } from "react-bootstrap";
@@ -85,7 +85,9 @@ export default function Materials({
 
   const handleDecision = async (id: number, approve: boolean) => {
     try {
-      const material = materials.find((material) => material.id === id);
+      const material = materials.find(
+        (material: Material) => material.id === id
+      );
       if (material) {
         updateButtonState(data, material, id, setData, true);
       }

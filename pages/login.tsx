@@ -1,8 +1,8 @@
 import Head from "next/head";
-import { GetServerSideProps } from "next";
 import { getCsrfToken } from "next-auth/react";
 import SimpleLayout from "../components/layout/simple";
 import LoginForm from "../components/login/login-form";
+import { GetServerSideProps } from "next/types";
 
 interface Props {
   csrfToken: string;

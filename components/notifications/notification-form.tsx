@@ -1,6 +1,10 @@
 import { useFormik } from "formik";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+toast.configure();
 
 export default function NotificationForm() {
   const { data: session } = useSession();
@@ -30,7 +34,15 @@ export default function NotificationForm() {
           body: JSON.stringify(values),
         });
 
-        console.log(res);
+        if (res.ok) {
+          toast.success("Notification sent successfully", {
+            position: toast.POSITION.BOTTOM_CENTER,
+          });
+        } else {
+          toast.error("Failed to send notification", {
+            position: toast.POSITION.BOTTOM_CENTER,
+          });
+        }
       }
     },
   });
