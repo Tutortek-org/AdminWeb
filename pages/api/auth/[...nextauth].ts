@@ -1,7 +1,7 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import jwt_decode from "jwt-decode";
+import { NextApiRequest, NextApiResponse } from "next/types";
 
 interface TutortekJWT {
   uid: number;
