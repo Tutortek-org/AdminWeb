@@ -1,13 +1,37 @@
 import { useFormik } from "formik";
+import { useSession } from "next-auth/react";
+import { useState } from "react";
 
 export default function NotificationForm() {
+  const { data: session } = useSession();
+  const [error, setError] = useState("");
+
   const formik = useFormik({
     initialValues: {
       title: "",
       content: "",
     },
     onSubmit: async (values) => {
-      console.log(values);
+      const isServer = typeof window === "undefined";
+      const host = isServer
+        ? process.env.NEXT_PUBLIC_BASE_URL
+        : "/tutortek-api";
+
+      if (values.title === "" || values.content === "") {
+        setError("Please fill in all fields");
+      } else {
+        setError("");
+        const res = await fetch(`${host}/notifications/send`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.accessToken}`,
+          },
+          body: JSON.stringify(values),
+        });
+
+        console.log(res);
+      }
     },
   });
 
@@ -39,6 +63,12 @@ export default function NotificationForm() {
             value={formik.values.content}
           />
         </div>
+
+        {error && (
+          <div className="mb-3" style={{ color: "red" }}>
+            {error}
+          </div>
+        )}
 
         <div className="mb-3">
           <button className="btn btn-primary" type="submit">
