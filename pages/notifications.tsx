@@ -1,7 +1,7 @@
 import SimpleLayout from "../components/layout/simple";
 import NotificationForm from "../components/notifications/notification-form";
 
-export default function Write() {
+export default function Notifications() {
   return (
     <SimpleLayout>
       <main className="vh-100 d-flex justify-content-center align-items-center">

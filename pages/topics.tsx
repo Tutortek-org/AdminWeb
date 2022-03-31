@@ -1,6 +1,6 @@
-import { GetServerSideProps } from "next";
+import { GetServerSideProps } from "next/types";
 import { getSession, useSession } from "next-auth/react";
-import { AppProps } from "next/app";
+import AppProps from "next/app";
 import React from "react";
 import { Button } from "react-bootstrap";
 import { Column, usePagination, useTable } from "react-table";
@@ -77,7 +77,7 @@ export default function Topics({ topics, isErrorPresent }: AppProps & Props) {
 
   const handleDecision = async (id: number, approve: boolean) => {
     try {
-      const topic = topics.find((topic) => topic.id === id);
+      const topic = topics.find((topic: Topic) => topic.id === id);
       if (topic) {
         updateButtonState(data, topic, id, setData, true);
       }
