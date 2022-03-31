@@ -1,11 +1,10 @@
 import SimpleLayout from "../components/layout/simple";
-import NotificationForm from "../components/notifications/notification-form";
 
-export default function Notifications() {
+export default function Statistics() {
   return (
     <SimpleLayout>
       <main className="vh-100 d-flex justify-content-center align-items-center">
-        <NotificationForm />
+        <h1>Statistics Page</h1>
       </main>
     </SimpleLayout>
   );

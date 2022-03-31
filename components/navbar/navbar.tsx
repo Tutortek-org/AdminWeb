@@ -2,7 +2,7 @@ import React from "react";
 import { Nav, Button } from "react-bootstrap";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/dist/client/router";
 
 export default function Navbar() {
   const router = useRouter();
@@ -51,6 +51,11 @@ export default function Navbar() {
               <li className="nav-item">
                 <Link href="/notifications">
                   <a className="nav-link">Notifications</a>
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link href="/statistics">
+                  <a className="nav-link">Statistics</a>
                 </Link>
               </li>
             </ul>

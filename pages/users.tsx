@@ -1,7 +1,7 @@
 import SimpleLayout from "../components/layout/simple";
 import React from "react";
 import { Column, useTable, usePagination } from "react-table";
-import { GetServerSideProps } from "next";
+import { GetServerSideProps } from "next/types";
 import { getSession, useSession } from "next-auth/react";
 import { AppProps } from "next/dist/shared/lib/router/router";
 import { User } from "../interfaces/user/user";
