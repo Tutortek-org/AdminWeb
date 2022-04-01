@@ -4,6 +4,7 @@ import { GetServerSideProps } from "next/types";
 import React from "react";
 import { Button } from "react-bootstrap";
 import { Column, usePagination, useTable } from "react-table";
+import ResolveButton from "../components/buttons/resolve-button";
 import SimpleLayout from "../components/layout/simple";
 import { BugReport } from "../interfaces/bug_report/bug-report";
 import { BugReportTableData } from "../interfaces/bug_report/bug-report-table-data";
@@ -167,7 +168,14 @@ export default function BugReports({
                         <td key={key} {...cellProps} className="align-middle">
                           {cell.column.id === "isLoading" ? (
                             <>
+                              <ResolveButton
+                                isLoading={row.original.isLoading}
+                                handleResolution={() =>
+                                  handleResolution(row.original.id)
+                                }
+                              />
                               <Button
+                                className="mx-2"
                                 onClick={() => {
                                   setModalShow(true);
                                   setSelectedBugReport(bugReports[i]);
