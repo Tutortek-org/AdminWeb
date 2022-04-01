@@ -63,6 +63,11 @@ export default function Navbar() {
                   <a className="nav-link">Bug reports</a>
                 </Link>
               </li>
+              <li className="nav-item">
+                <Link href="/user_reports">
+                  <a className="nav-link">User reports</a>
+                </Link>
+              </li>
             </ul>
           ) : (
             <span />

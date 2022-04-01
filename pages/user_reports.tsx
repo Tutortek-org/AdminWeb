@@ -1,35 +1,36 @@
 import { getSession, useSession } from "next-auth/react";
-import AppProps from "next/app";
+import { AppProps } from "next/app";
 import { GetServerSideProps } from "next/types";
 import React from "react";
 import { Button } from "react-bootstrap";
 import { Column, usePagination, useTable } from "react-table";
 import ResolveButton from "../components/buttons/resolve-button";
 import SimpleLayout from "../components/layout/simple";
-import BugReportModal from "../components/modals/bug_report_modal";
-import { BugReport } from "../interfaces/bug_report/bug-report";
-import { BugReportTableData } from "../interfaces/bug_report/bug-report-table-data";
+import UserReportModal from "../components/modals/user_report_modal";
+import { UserReport } from "../interfaces/user_report/user-report";
+import { UserReportTableData } from "../interfaces/user_report/user-report-table-data";
 
 interface Props {
-  bugReports: BugReport[];
+  userReports: UserReport[];
   isErrorPresent: Boolean;
 }
 
 let currentPageIndex: number = 0;
 
-export default function BugReports({
-  bugReports,
+export default function UserReports({
+  userReports,
   isErrorPresent,
 }: AppProps & Props) {
   const { data: session } = useSession();
-  let rowData: Array<BugReportTableData> = [];
+  let rowData: Array<UserReportTableData> = [];
 
   if (!isErrorPresent) {
-    rowData = mapBugReportsToTableData(bugReports);
+    rowData = mapUserReportsToTableData(userReports);
   }
 
   const [modalShow, setModalShow] = React.useState(false);
-  const [selectedBugReport, setSelectedBugReport] = React.useState<BugReport>();
+  const [selectedUserReport, setSelectedUserReport] =
+    React.useState<UserReport>();
   const [originalData, setOriginalData] = React.useState(rowData);
   const [data, setData] = React.useState(rowData);
   const [search, setSearch] = React.useState("");
@@ -40,7 +41,7 @@ export default function BugReports({
     setSearch(event.target.value);
     const keyword = event.target.value.toString().toLowerCase();
     const newData = originalData.filter((item) =>
-      item.name.toLowerCase().includes(keyword)
+      item.reportedEmail.toLowerCase().includes(keyword)
     );
     currentPageIndex = 0;
     setData(newData);
@@ -48,12 +49,14 @@ export default function BugReports({
 
   const columns: Column<{
     id: number;
-    name: string;
+    reportedEmail: string;
+    reporterEmail: string;
     isLoading: boolean;
   }>[] = React.useMemo(
     () => [
       { Header: "ID", accessor: "id" },
-      { Header: "Name", accessor: "name" },
+      { Header: "Reported", accessor: "reportedEmail" },
+      { Header: "Reporter", accessor: "reporterEmail" },
       { Header: "Actions", accessor: "isLoading" },
     ],
     []
@@ -83,13 +86,13 @@ export default function BugReports({
 
   const handleResolution = async (id: number) => {
     try {
-      const bugReport = bugReports.find(
-        (bugReport: BugReport) => bugReport.id === id
+      const userReport = userReports.find(
+        (userReport: UserReport) => userReport.id === id
       );
-      if (bugReport) {
-        updateButtonState(data, bugReport, id, setData, true);
+      if (userReport) {
+        updateButtonState(data, userReport, id, setData, true);
       }
-      const res = await fetch(`/tutortek-api/bugreports/${id}`, {
+      const res = await fetch(`/tutortek-api/userreports/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${session?.accessToken}`,
@@ -102,11 +105,11 @@ export default function BugReports({
         return;
       }
 
-      const newBugReports = await fetchBugReports(
+      const newUserReports = await fetchUserReports(
         session?.accessToken as string
       );
-      if (newBugReports) {
-        const newRowData = mapBugReportsToTableData(newBugReports);
+      if (newUserReports) {
+        const newRowData = mapUserReportsToTableData(newUserReports);
         setData(newRowData);
         setOriginalData(newRowData);
       }
@@ -119,7 +122,7 @@ export default function BugReports({
     <SimpleLayout>
       {isErrorPresent ? (
         <div className="mb-3" style={{ color: "red" }}>
-          Error while sending a request to bug report API
+          Error while sending a request to user report API
         </div>
       ) : (
         <>
@@ -128,7 +131,7 @@ export default function BugReports({
             htmlFor="search"
             className="d-flex justify-content-center align-items-center form-label"
           >
-            Search by name:
+            Search by reported E-mail:
             <input
               id="search"
               type="text"
@@ -178,12 +181,12 @@ export default function BugReports({
                               <Button
                                 className="mx-2"
                                 onClick={() => {
-                                  const index = bugReports.findIndex(
-                                    (bugReport) =>
-                                      bugReport.id === row.original.id
+                                  const index = userReports.findIndex(
+                                    (userReport) =>
+                                      userReport.id === row.original.id
                                   );
                                   setModalShow(true);
-                                  setSelectedBugReport(bugReports[index]);
+                                  setSelectedUserReport(userReports[index]);
                                 }}
                               >
                                 More info
@@ -200,10 +203,10 @@ export default function BugReports({
               })}
             </tbody>
           </table>
-          <BugReportModal
+          <UserReportModal
             show={modalShow}
             onHide={() => setModalShow(false)}
-            bugReport={selectedBugReport}
+            userReport={selectedUserReport}
           />
         </>
       )}
@@ -288,28 +291,30 @@ export default function BugReports({
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const session = await getSession(context);
 
-  const bugReports = await fetchBugReports(session?.accessToken as string);
+  const userReports = await fetchUserReports(session?.accessToken as string);
 
-  if (bugReports) {
+  if (userReports) {
     return {
       props: {
-        bugReports,
+        userReports,
         isErrorPresent: false,
       },
     };
   }
 
   return {
-    props: { bugReports: [], isErrorPresent: true },
+    props: { userReports: [], isErrorPresent: true },
   };
 };
 
-const fetchBugReports = async (token: string): Promise<BugReport[] | null> => {
+const fetchUserReports = async (
+  token: string
+): Promise<UserReport[] | null> => {
   const isServer = typeof window === "undefined";
   const host = isServer ? process.env.NEXT_PUBLIC_BASE_URL : "/tutortek-api";
 
   try {
-    const res = await fetch(`${host}/bugreports`, {
+    const res = await fetch(`${host}/userreports`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -318,8 +323,8 @@ const fetchBugReports = async (token: string): Promise<BugReport[] | null> => {
     });
 
     if (res.ok) {
-      const bugReports: BugReport[] = await res.json();
-      return bugReports;
+      const userReports: UserReport[] = await res.json();
+      return userReports;
     }
   } catch (e) {}
 
@@ -327,18 +332,26 @@ const fetchBugReports = async (token: string): Promise<BugReport[] | null> => {
 };
 
 const updateButtonState = (
-  data: BugReportTableData[],
-  bugReport: Partial<BugReport>,
+  data: UserReportTableData[],
+  userReport: Partial<UserReport>,
   id: number,
-  setData: (value: React.SetStateAction<BugReportTableData[]>) => void,
+  setData: (value: React.SetStateAction<UserReportTableData[]>) => void,
   isLoading: boolean
 ) => {
-  const index = data.findIndex((bugReport) => bugReport.id === id);
-  const name = bugReport.name ? bugReport.name : "";
-  const idToAssign = bugReport.id ? bugReport.id : 0;
+  const index = data.findIndex((userReport) => userReport.id === id);
+  const description = userReport.description ? userReport.description : "";
+  const idToAssign = userReport.id ? userReport.id : 0;
+  const reportedEmailToAssign = userReport.reported?.email
+    ? userReport.reported.email
+    : "";
+  const reporterEmailToAssign = userReport.reporter?.email
+    ? userReport.reporter.email
+    : "";
   const dataToAdd = {
     id: idToAssign,
-    name: name,
+    description: description,
+    reportedEmail: reportedEmailToAssign,
+    reporterEmail: reporterEmailToAssign,
     isLoading: isLoading,
   };
 
@@ -352,13 +365,15 @@ const updateButtonState = (
   });
 };
 
-const mapBugReportsToTableData = (
-  bugReports: BugReport[]
-): BugReportTableData[] => {
-  return bugReports.map((bugReport) => {
+const mapUserReportsToTableData = (
+  userReports: UserReport[]
+): UserReportTableData[] => {
+  return userReports.map((userReport) => {
     return {
-      id: bugReport.id,
-      name: bugReport.name,
+      id: userReport.id,
+      description: userReport.description,
+      reportedEmail: userReport.reported.email,
+      reporterEmail: userReport.reporter.email,
       isLoading: false,
     };
   });
