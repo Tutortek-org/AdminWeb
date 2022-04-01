@@ -194,8 +194,12 @@ export default function Materials({
                               />
                               <Button
                                 onClick={() => {
+                                  const index = materials.findIndex(
+                                    (material) =>
+                                      material.id === row.original.id
+                                  );
                                   setModalShow(true);
-                                  setSelectedMaterial(materials[i]);
+                                  setSelectedMaterial(materials[index]);
                                 }}
                               >
                                 More info
