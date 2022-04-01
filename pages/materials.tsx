@@ -10,6 +10,7 @@ import RejectButton from "../components/buttons/reject-button";
 import SimpleLayout from "../components/layout/simple";
 import { Material } from "../interfaces/material/material";
 import { MaterialTableData } from "../interfaces/material/material-table-data";
+import MaterialModal from "../components/modals/material_modal";
 
 interface Props {
   materials: Material[];
@@ -29,6 +30,8 @@ export default function Materials({
     rowData = mapMaterialsToTableData(materials);
   }
 
+  const [modalShow, setModalShow] = React.useState(false);
+  const [selectedMaterial, setSelectedMaterial] = React.useState<Material>();
   const [originalData, setOriginalData] = React.useState(rowData);
   const [data, setData] = React.useState(rowData);
   const [search, setSearch] = React.useState("");
@@ -171,7 +174,7 @@ export default function Materials({
                       return (
                         <td key={key} {...cellProps} className="align-middle">
                           {cell.column.id === "link" ? (
-                            <Link href={row.original.link}>
+                            <Link href={`https://${row.original.link}`}>
                               <a className="nav-link">{row.original.link}</a>
                             </Link>
                           ) : cell.column.id === "materialFlags" ? (
@@ -189,6 +192,14 @@ export default function Materials({
                                   handleDecision(row.original.id, false)
                                 }
                               />
+                              <Button
+                                onClick={() => {
+                                  setModalShow(true);
+                                  setSelectedMaterial(materials[i]);
+                                }}
+                              >
+                                More info
+                              </Button>
                             </>
                           ) : (
                             cell.render("Cell")
@@ -201,6 +212,11 @@ export default function Materials({
               })}
             </tbody>
           </table>
+          <MaterialModal
+            show={modalShow}
+            onHide={() => setModalShow(false)}
+            material={selectedMaterial}
+          />
         </>
       )}
 
