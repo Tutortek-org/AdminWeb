@@ -12,7 +12,22 @@ interface TutortekJWT {
   iat: number;
 }
 
+function setNextAuthUrl(req: NextApiRequest) {
+  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+  const host = req.headers["host"];
+
+  if (!host) {
+    throw new Error(
+      `The request has no host header which breaks authentication and authorization.`
+    );
+  }
+
+  process.env.NEXTAUTH_URL = `${protocol}://${host}`;
+}
+
 export default async function auth(req: NextApiRequest, res: NextApiResponse) {
+  setNextAuthUrl(req);
+
   return await NextAuth(req, res, {
     pages: {
       signIn: "/login",
