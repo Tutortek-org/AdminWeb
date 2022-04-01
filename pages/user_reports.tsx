@@ -6,6 +6,7 @@ import { Button } from "react-bootstrap";
 import { Column, usePagination, useTable } from "react-table";
 import ResolveButton from "../components/buttons/resolve-button";
 import SimpleLayout from "../components/layout/simple";
+import UserReportModal from "../components/modals/user_report_modal";
 import { UserReport } from "../interfaces/user_report/user-report";
 import { UserReportTableData } from "../interfaces/user_report/user-report-table-data";
 
@@ -180,8 +181,12 @@ export default function UserReports({
                               <Button
                                 className="mx-2"
                                 onClick={() => {
+                                  const index = userReports.findIndex(
+                                    (userReport) =>
+                                      userReport.id === row.original.id
+                                  );
                                   setModalShow(true);
-                                  setSelectedUserReport(userReports[i]);
+                                  setSelectedUserReport(userReports[index]);
                                 }}
                               >
                                 More info
@@ -198,6 +203,11 @@ export default function UserReports({
               })}
             </tbody>
           </table>
+          <UserReportModal
+            show={modalShow}
+            onHide={() => setModalShow(false)}
+            userReport={selectedUserReport}
+          />
         </>
       )}
 

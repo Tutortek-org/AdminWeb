@@ -180,8 +180,11 @@ export default function Topics({ topics, isErrorPresent }: AppProps & Props) {
                               />
                               <Button
                                 onClick={() => {
+                                  const index = topics.findIndex(
+                                    (topic) => topic.id === row.original.id
+                                  );
                                   setModalShow(true);
-                                  setSelectedTopic(topics[i]);
+                                  setSelectedTopic(topics[index]);
                                 }}
                               >
                                 More info
