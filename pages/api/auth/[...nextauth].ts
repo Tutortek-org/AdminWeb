@@ -19,23 +19,27 @@ export default async function auth(req: NextApiRequest, res: NextApiResponse) {
     },
     callbacks: {
       async jwt({ token, user }) {
-        const decoded: TutortekJWT = jwt_decode(token.accessToken as string);
-        if (decoded.exp < Date.now() / 1000) {
-          const res = await fetch(
-            `${process.env.NEXT_PUBLIC_BASE_URL}/refresh`,
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token.accessToken}`,
-              },
-            }
-          );
+        if (token.accessToken) {
+          const decoded: TutortekJWT = jwt_decode(token.accessToken as string);
+          if (decoded.exp < Date.now() / 1000) {
+            const res = await fetch(
+              `${process.env.NEXT_PUBLIC_BASE_URL}/refresh`,
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token.accessToken}`,
+                },
+              }
+            );
 
-          const { token: accessToken } = await res.json();
-          const newDecoded: TutortekJWT = jwt_decode(accessToken);
-          if (res.ok && accessToken && newDecoded.roles.includes("ADMIN")) {
-            token.accessToken = accessToken;
+            const { token: accessToken } = await res.json();
+            const newDecoded: TutortekJWT = jwt_decode(accessToken);
+            if (res.ok && accessToken && newDecoded.roles.includes("ADMIN")) {
+              token.accessToken = accessToken;
+            }
+          } else if (user?.token) {
+            token.accessToken = user.token;
           }
         } else if (user?.token) {
           token.accessToken = user.token;
