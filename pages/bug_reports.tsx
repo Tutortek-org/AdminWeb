@@ -178,8 +178,12 @@ export default function BugReports({
                               <Button
                                 className="mx-2"
                                 onClick={() => {
+                                  const index = bugReports.findIndex(
+                                    (bugReport) =>
+                                      bugReport.id === row.original.id
+                                  );
                                   setModalShow(true);
-                                  setSelectedBugReport(bugReports[i]);
+                                  setSelectedBugReport(bugReports[index]);
                                 }}
                               >
                                 More info
