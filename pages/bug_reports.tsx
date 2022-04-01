@@ -6,6 +6,7 @@ import { Button } from "react-bootstrap";
 import { Column, usePagination, useTable } from "react-table";
 import ResolveButton from "../components/buttons/resolve-button";
 import SimpleLayout from "../components/layout/simple";
+import BugReportModal from "../components/modals/bug_report_modal";
 import { BugReport } from "../interfaces/bug_report/bug-report";
 import { BugReportTableData } from "../interfaces/bug_report/bug-report-table-data";
 
@@ -195,6 +196,11 @@ export default function BugReports({
               })}
             </tbody>
           </table>
+          <BugReportModal
+            show={modalShow}
+            onHide={() => setModalShow(false)}
+            bugReport={selectedBugReport}
+          />
         </>
       )}
 
