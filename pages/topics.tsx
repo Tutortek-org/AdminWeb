@@ -9,6 +9,7 @@ import RejectButton from "../components/buttons/reject-button";
 import SimpleLayout from "../components/layout/simple";
 import { Topic } from "../interfaces/topic/topic";
 import { TopicTableData } from "../interfaces/topic/topic-table-data";
+import TopicModal from "../components/modals/topic_modal";
 
 interface Props {
   topics: Topic[];
@@ -25,6 +26,8 @@ export default function Topics({ topics, isErrorPresent }: AppProps & Props) {
     rowData = mapTopicsToTableData(topics);
   }
 
+  const [modalShow, setModalShow] = React.useState(false);
+  const [selectedTopic, setSelectedTopic] = React.useState<Topic>();
   const [originalData, setOriginalData] = React.useState(rowData);
   const [data, setData] = React.useState(rowData);
   const [search, setSearch] = React.useState("");
@@ -175,6 +178,14 @@ export default function Topics({ topics, isErrorPresent }: AppProps & Props) {
                                   handleDecision(row.original.id, false)
                                 }
                               />
+                              <Button
+                                onClick={() => {
+                                  setModalShow(true);
+                                  setSelectedTopic(topics[i]);
+                                }}
+                              >
+                                More info
+                              </Button>
                             </>
                           ) : (
                             cell.render("Cell")
@@ -187,6 +198,11 @@ export default function Topics({ topics, isErrorPresent }: AppProps & Props) {
               })}
             </tbody>
           </table>
+          <TopicModal
+            show={modalShow}
+            onHide={() => setModalShow(false)}
+            topic={selectedTopic}
+          />
         </>
       )}
 
