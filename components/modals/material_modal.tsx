@@ -24,9 +24,13 @@ export default function MaterialModal(props: Props) {
       <Modal.Body>
         <h4>{props.material?.name}</h4>
         <p>{props.material?.description}</p>
-        <Link href={`https://${props.material?.link}`}>
-          <a className="nav-link">{props.material?.link}</a>
-        </Link>
+        Link:
+        <div style={{ display: "inline-block" }}>
+          {" "}
+          <Link href={`https://${props.material?.link}`}>
+            <a className="nav-link">{props.material?.link}</a>
+          </Link>
+        </div>
       </Modal.Body>
       <Modal.Footer>
         <Button onClick={props.onHide}>Close</Button>
