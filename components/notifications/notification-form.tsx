@@ -2,7 +2,6 @@ import { useFormik } from "formik";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
 toast.configure();
 
